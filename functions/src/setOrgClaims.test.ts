@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Module-level mocks (vitest hoists vi.mock, but variables in scope are accessible)
+const mockGetUser = vi.fn().mockResolvedValue({ customClaims: null });
 const mockSetCustomUserClaims = vi.fn().mockResolvedValue(undefined);
 const mockTxnSet = vi.fn();
 const mockRunTransaction = vi.fn().mockImplementation(async (fn: (txn: { set: typeof mockTxnSet }) => Promise<void>) => {
@@ -27,6 +28,7 @@ vi.mock('firebase-admin/firestore', () => ({
 
 vi.mock('firebase-admin/auth', () => ({
   getAuth: vi.fn().mockReturnValue({
+    getUser: mockGetUser,
     setCustomUserClaims: mockSetCustomUserClaims,
   }),
 }));
@@ -34,6 +36,7 @@ vi.mock('firebase-admin/auth', () => ({
 describe('setOrgClaimsLogic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetUser.mockResolvedValue({ customClaims: null });
     mockRunTransaction.mockImplementation(async (fn: (txn: { set: typeof mockTxnSet }) => Promise<void>) => {
       await fn({ set: mockTxnSet });
     });
@@ -88,6 +91,15 @@ describe('setOrgClaimsLogic', () => {
     const result = await setOrgClaimsLogic('uid-1', 'admin@test.com', { orgName: 'Acme Corp', defaultCurrency: 'CLP' });
 
     expect(result).toEqual({ orgId: 'org-generated-id' });
+  });
+
+  it('throws if user already belongs to an org', async () => {
+    mockGetUser.mockResolvedValue({ customClaims: { orgId: 'existing-org', role: 'admin' } });
+    const { setOrgClaimsLogic } = await import('./setOrgClaims');
+    await expect(
+      setOrgClaimsLogic('uid-1', 'admin@test.com', { orgName: 'Acme Corp', defaultCurrency: 'CLP' })
+    ).rejects.toThrow();
+    expect(mockRunTransaction).not.toHaveBeenCalled();
   });
 
   it('throws on empty orgName', async () => {

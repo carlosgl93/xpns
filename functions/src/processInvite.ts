@@ -18,32 +18,44 @@ export async function processInviteLogic(
   const db = getFirestore();
   const auth = getAuth();
 
+  // Idempotent: if this user already has the right claims (retry after partial failure), skip.
+  const existingUser = await auth.getUser(uid);
+  if (existingUser.customClaims?.['orgId'] === input.orgId) {
+    return { orgId: input.orgId };
+  }
+
   const inviteRef = db.doc(`orgs/${input.orgId}/invites/${input.token}`);
-  const inviteSnap = await inviteRef.get();
 
-  if (!inviteSnap.exists) {
-    throw new HttpsError('not-found', 'Invite not found');
-  }
+  // Transaction: atomic read-check-mark prevents concurrent double-redemption (TOCTOU).
+  await db.runTransaction(async (txn) => {
+    const inviteSnap = await txn.get(inviteRef);
 
-  const invite = inviteSnap.data()!;
+    if (!inviteSnap.exists) {
+      throw new HttpsError('not-found', 'Invite not found');
+    }
 
-  if (invite['email'] && invite['email'] !== email) {
-    throw new HttpsError('permission-denied', 'Invite is for a different email');
-  }
+    const invite = inviteSnap.data()!;
 
-  if (invite['expiresAt'].toMillis() <= Date.now()) {
-    throw new HttpsError('deadline-exceeded', 'Invite has expired');
-  }
+    if (invite['email'] && invite['email'] !== email) {
+      throw new HttpsError('permission-denied', 'Invite is for a different email');
+    }
 
-  if (invite['usedAt']) {
-    throw new HttpsError('already-exists', 'Invite has already been used');
-  }
+    if (invite['expiresAt'].toMillis() <= Date.now()) {
+      throw new HttpsError('deadline-exceeded', 'Invite has expired');
+    }
 
-  await inviteRef.update({
-    usedAt: FieldValue.serverTimestamp(),
-    usedBy: uid,
+    if (invite['usedAt']) {
+      throw new HttpsError('already-exists', 'Invite has already been used');
+    }
+
+    txn.update(inviteRef, {
+      usedAt: FieldValue.serverTimestamp(),
+      usedBy: uid,
+    });
   });
 
+  // Claims set after transaction commits. If this throws, the idempotency check
+  // above lets the user retry and skip straight to here.
   await auth.setCustomUserClaims(uid, { orgId: input.orgId, role: 'employee' });
 
   return { orgId: input.orgId };

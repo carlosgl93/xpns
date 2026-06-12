@@ -25,6 +25,12 @@ export async function setOrgClaimsLogic(
   const db = getFirestore();
   const auth = getAuth();
 
+  // Guard: reject if user already belongs to an org.
+  const existingUser = await auth.getUser(uid);
+  if (existingUser.customClaims?.['orgId']) {
+    throw new HttpsError('already-exists', 'User already belongs to an org');
+  }
+
   const orgRef = db.collection('orgs').doc();
   const orgId = orgRef.id;
 

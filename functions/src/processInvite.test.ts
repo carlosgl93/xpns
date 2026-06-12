@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+const mockGetUser = vi.fn().mockResolvedValue({ customClaims: null });
 const mockSetCustomUserClaims = vi.fn().mockResolvedValue(undefined);
-const mockInviteUpdate = vi.fn().mockResolvedValue(undefined);
-const mockInviteGet = vi.fn();
-const mockInviteRef = { get: mockInviteGet, update: mockInviteUpdate };
-const mockDocFn = vi.fn().mockReturnValue(mockInviteRef);
+const mockTxnGet = vi.fn();
+const mockTxnUpdate = vi.fn();
+const mockRunTransaction = vi.fn().mockImplementation(
+  async (fn: (txn: { get: typeof mockTxnGet; update: typeof mockTxnUpdate }) => Promise<void>) => {
+    await fn({ get: mockTxnGet, update: mockTxnUpdate });
+  }
+);
+const mockDocFn = vi.fn().mockReturnValue({ id: 'mock-invite-ref' });
 
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(),
@@ -14,12 +19,14 @@ vi.mock('firebase-admin/app', () => ({
 vi.mock('firebase-admin/firestore', () => ({
   getFirestore: vi.fn().mockReturnValue({
     doc: mockDocFn,
+    runTransaction: mockRunTransaction,
   }),
   FieldValue: { serverTimestamp: vi.fn().mockReturnValue('__ts__') },
 }));
 
 vi.mock('firebase-admin/auth', () => ({
   getAuth: vi.fn().mockReturnValue({
+    getUser: mockGetUser,
     setCustomUserClaims: mockSetCustomUserClaims,
   }),
 }));
@@ -40,12 +47,18 @@ function makeInviteSnap(overrides: Record<string, unknown> = {}) {
 describe('processInviteLogic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockInviteUpdate.mockResolvedValue(undefined);
+    mockGetUser.mockResolvedValue({ customClaims: null });
+    mockTxnUpdate.mockResolvedValue(undefined);
     mockSetCustomUserClaims.mockResolvedValue(undefined);
+    mockRunTransaction.mockImplementation(
+      async (fn: (txn: { get: typeof mockTxnGet; update: typeof mockTxnUpdate }) => Promise<void>) => {
+        await fn({ get: mockTxnGet, update: mockTxnUpdate });
+      }
+    );
   });
 
   it('sets employee claims when invite is valid', async () => {
-    mockInviteGet.mockResolvedValue(makeInviteSnap());
+    mockTxnGet.mockResolvedValue(makeInviteSnap());
     const { processInviteLogic } = await import('./processInvite');
     await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' });
 
@@ -55,18 +68,19 @@ describe('processInviteLogic', () => {
     });
   });
 
-  it('marks invite as used (usedAt + usedBy)', async () => {
-    mockInviteGet.mockResolvedValue(makeInviteSnap());
+  it('marks invite as used (usedAt + usedBy) inside transaction', async () => {
+    mockTxnGet.mockResolvedValue(makeInviteSnap());
     const { processInviteLogic } = await import('./processInvite');
     await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' });
 
-    expect(mockInviteUpdate).toHaveBeenCalledWith(
+    expect(mockTxnUpdate).toHaveBeenCalledWith(
+      expect.anything(),
       expect.objectContaining({ usedAt: '__ts__', usedBy: 'uid-alice' })
     );
   });
 
   it('returns orgId on success', async () => {
-    mockInviteGet.mockResolvedValue(makeInviteSnap());
+    mockTxnGet.mockResolvedValue(makeInviteSnap());
     const { processInviteLogic } = await import('./processInvite');
     const result = await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' });
 
@@ -74,15 +88,25 @@ describe('processInviteLogic', () => {
   });
 
   it('reads invite from orgs/{orgId}/invites/{token}', async () => {
-    mockInviteGet.mockResolvedValue(makeInviteSnap());
+    mockTxnGet.mockResolvedValue(makeInviteSnap());
     const { processInviteLogic } = await import('./processInvite');
     await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok-abc', orgId: 'org-xyz' });
 
     expect(mockDocFn).toHaveBeenCalledWith('orgs/org-xyz/invites/tok-abc');
   });
 
+  it('returns early without touching Firestore when user already has matching claims', async () => {
+    mockGetUser.mockResolvedValue({ customClaims: { orgId: 'org1', role: 'employee' } });
+    const { processInviteLogic } = await import('./processInvite');
+    const result = await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' });
+
+    expect(result).toEqual({ orgId: 'org1' });
+    expect(mockRunTransaction).not.toHaveBeenCalled();
+    expect(mockSetCustomUserClaims).not.toHaveBeenCalled();
+  });
+
   it('throws not-found when invite does not exist', async () => {
-    mockInviteGet.mockResolvedValue({ exists: false, data: () => null });
+    mockTxnGet.mockResolvedValue({ exists: false, data: () => null });
     const { processInviteLogic } = await import('./processInvite');
     await expect(
       processInviteLogic('uid-alice', 'alice@test.com', { token: 'bad', orgId: 'org1' })
@@ -90,7 +114,7 @@ describe('processInviteLogic', () => {
   });
 
   it('throws when invite email does not match user email', async () => {
-    mockInviteGet.mockResolvedValue(makeInviteSnap({ email: 'other@test.com' }));
+    mockTxnGet.mockResolvedValue(makeInviteSnap({ email: 'other@test.com' }));
     const { processInviteLogic } = await import('./processInvite');
     await expect(
       processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
@@ -98,7 +122,7 @@ describe('processInviteLogic', () => {
   });
 
   it('throws when invite is expired', async () => {
-    mockInviteGet.mockResolvedValue(
+    mockTxnGet.mockResolvedValue(
       makeInviteSnap({ expiresAt: { toMillis: () => Date.now() - 1000 } })
     );
     const { processInviteLogic } = await import('./processInvite');
@@ -108,7 +132,7 @@ describe('processInviteLogic', () => {
   });
 
   it('throws when invite has already been used', async () => {
-    mockInviteGet.mockResolvedValue(
+    mockTxnGet.mockResolvedValue(
       makeInviteSnap({ usedAt: { toMillis: () => Date.now() - 3600000 } })
     );
     const { processInviteLogic } = await import('./processInvite');
@@ -118,7 +142,7 @@ describe('processInviteLogic', () => {
   });
 
   it('allows join if invite has no email restriction', async () => {
-    mockInviteGet.mockResolvedValue(makeInviteSnap({ email: undefined }));
+    mockTxnGet.mockResolvedValue(makeInviteSnap({ email: undefined }));
     const { processInviteLogic } = await import('./processInvite');
     await expect(
       processInviteLogic('uid-bob', 'bob@test.com', { token: 'tok1', orgId: 'org1' })
