@@ -5,6 +5,7 @@ const mockAddDoc = vi.fn();
 const mockDeleteDoc = vi.fn();
 const mockCollection = vi.fn();
 const mockServerTimestamp = vi.fn(() => ({ _type: 'serverTimestamp' }));
+const mockTimestamp = { fromDate: vi.fn((d: Date) => ({ _type: 'timestamp', _date: d })) };
 const mockRef = vi.fn();
 const mockQuery = vi.fn();
 const mockWhere = vi.fn();
@@ -33,6 +34,7 @@ vi.mock('firebase/firestore', () => ({
   addDoc: mockAddDoc,
   deleteDoc: mockDeleteDoc,
   serverTimestamp: mockServerTimestamp,
+  Timestamp: mockTimestamp,
   doc: mockDoc,
   query: mockQuery,
   where: mockWhere,
@@ -71,6 +73,7 @@ describe('addExpense', () => {
       addDoc: mockAddDoc,
       deleteDoc: mockDeleteDoc,
       serverTimestamp: mockServerTimestamp,
+      Timestamp: mockTimestamp,
       doc: mockDoc,
       query: mockQuery,
       where: mockWhere,
@@ -310,6 +313,39 @@ describe('fetchExpenses', () => {
     const { fetchExpenses } = await import('../../hooks/useExpenses');
     await fetchExpenses('org-1', {});
     expect(mockLimit).toHaveBeenCalledWith(100);
+  });
+
+  // P1-A: date range filters
+  it('applies dateFrom filter as where(date >= Timestamp)', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    const from = new Date('2024-01-01');
+    await fetchExpenses('org-1', { dateFrom: from });
+    expect(mockTimestamp.fromDate).toHaveBeenCalledWith(from);
+    expect(mockWhere).toHaveBeenCalledWith('date', '>=', expect.objectContaining({ _date: from }));
+  });
+
+  it('applies dateTo filter as where(date <= Timestamp)', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    const to = new Date('2024-12-31');
+    await fetchExpenses('org-1', { dateTo: to });
+    expect(mockTimestamp.fromDate).toHaveBeenCalledWith(to);
+    expect(mockWhere).toHaveBeenCalledWith('date', '<=', expect.objectContaining({ _date: to }));
+  });
+
+  it('applies both dateFrom and dateTo together', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    const from = new Date('2024-01-01');
+    const to = new Date('2024-12-31');
+    await fetchExpenses('org-1', { dateFrom: from, dateTo: to });
+    expect(mockWhere).toHaveBeenCalledWith('date', '>=', expect.objectContaining({ _date: from }));
+    expect(mockWhere).toHaveBeenCalledWith('date', '<=', expect.objectContaining({ _date: to }));
+  });
+
+  it('does not add date constraints when dateFrom/dateTo are absent', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', {});
+    const whereCalls = mockWhere.mock.calls.map((c) => c[0]);
+    expect(whereCalls).not.toContain('date');
   });
 });
 

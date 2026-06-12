@@ -11,7 +11,7 @@ export interface ExpenseFilters {
 
 export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Promise<Expense[]> {
   const { getDb } = await import('../lib/firebase');
-  const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
+  const { collection, query, where, orderBy, limit, getDocs, Timestamp } = await import('firebase/firestore');
 
   const db = await getDb();
   const col = collection(db, `orgs/${orgId}/expenses`);
@@ -20,6 +20,8 @@ export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Pro
   if (filters.status) constraints.push(where('status', '==', filters.status));
   if (filters.submittedBy) constraints.push(where('submittedBy', '==', filters.submittedBy));
   if (filters.category) constraints.push(where('category', '==', filters.category));
+  if (filters.dateFrom) constraints.push(where('date', '>=', Timestamp.fromDate(filters.dateFrom)));
+  if (filters.dateTo) constraints.push(where('date', '<=', Timestamp.fromDate(filters.dateTo)));
   constraints.push(orderBy('date', 'desc'));
   constraints.push(limit(100));
 
