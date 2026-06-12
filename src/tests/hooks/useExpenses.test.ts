@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { DocumentReference } from 'firebase/firestore';
 
 const mockAddDoc = vi.fn();
+const mockDeleteDoc = vi.fn();
 const mockCollection = vi.fn();
 const mockServerTimestamp = vi.fn(() => ({ _type: 'serverTimestamp' }));
 const mockRef = vi.fn();
@@ -30,6 +31,7 @@ vi.mock('../../lib/firebase', () => ({
 vi.mock('firebase/firestore', () => ({
   collection: mockCollection,
   addDoc: mockAddDoc,
+  deleteDoc: mockDeleteDoc,
   serverTimestamp: mockServerTimestamp,
   doc: mockDoc,
   query: mockQuery,
@@ -53,16 +55,47 @@ vi.mock('../../hooks/useAuth', () => ({
 
 describe('addExpense', () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.clearAllMocks();
+    // Restore auth mock in case a prior test overrode it with vi.doMock
+    vi.doMock('../../hooks/useAuth', () => ({
+      authUser: { value: { uid: 'user-1', displayName: 'Carlos' } },
+      authClaims: { value: { orgId: 'org-1', role: 'employee' } },
+    }));
+    vi.doMock('../../lib/firebase', () => ({
+      getDb: vi.fn().mockResolvedValue({}),
+      getStorage: vi.fn().mockResolvedValue({}),
+    }));
+    vi.doMock('firebase/firestore', () => ({
+      collection: mockCollection,
+      addDoc: mockAddDoc,
+      deleteDoc: mockDeleteDoc,
+      serverTimestamp: mockServerTimestamp,
+      doc: mockDoc,
+      query: mockQuery,
+      where: mockWhere,
+      orderBy: mockOrderBy,
+      limit: mockLimit,
+      getDocs: mockGetDocs,
+      updateDoc: mockUpdateDoc,
+    }));
+    vi.doMock('firebase/storage', () => ({
+      ref: mockRef,
+      uploadBytesResumable: mockUploadBytesResumable,
+      getDownloadURL: mockGetDownloadURL,
+    }));
     mockUploadTask.on.mockImplementation(
       (_event: string, _progress: unknown, _error: unknown, complete: () => void) => {
         complete();
       }
     );
     mockAddDoc.mockResolvedValue({ id: 'expense-abc' } as unknown as DocumentReference);
+    mockDeleteDoc.mockResolvedValue(undefined);
+    mockUpdateDoc.mockResolvedValue(undefined);
     mockGetDownloadURL.mockResolvedValue('https://storage/receipt.jpg');
-    mockRef.mockReturnValue({ fullPath: 'orgs/org-1/receipts/expense-abc/receipt.jpg' });
+    mockRef.mockReturnValue({ fullPath: 'orgs/org-1/receipts/user-1/expense-abc/receipt.jpg' });
     mockCollection.mockReturnValue('col-ref');
+    mockDoc.mockReturnValue('doc-ref');
   });
 
   it('uploads photo to orgs/{orgId}/receipts/{expenseId}/{filename} in Storage', async () => {
@@ -91,7 +124,7 @@ describe('addExpense', () => {
     expect(mockAddDoc).toHaveBeenCalledOnce();
   });
 
-  it('includes all ExpenseWrite fields plus receiptStoragePath in the doc', async () => {
+  it('includes all ExpenseWrite fields in the initial doc (receiptStoragePath set via updateDoc)', async () => {
     const { addExpense } = await import('../../hooks/useExpenses');
     const photo = new File(['bytes'], 'receipt.jpg', { type: 'image/jpeg' });
     const data = makeExpenseWrite();
@@ -105,8 +138,12 @@ describe('addExpense', () => {
       category: data.category,
       description: data.description,
       submittedBy: 'user-1',
-      receiptStoragePath: expect.stringContaining('orgs/org-1/receipts/'),
     });
+    // Storage path is written via updateDoc after upload, not in the initial addDoc
+    expect(mockUpdateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ receiptStoragePath: expect.stringContaining('orgs/org-1/receipts/') })
+    );
   });
 
   it('returns the new expense document id', async () => {
@@ -151,6 +188,54 @@ describe('addExpense', () => {
     const { addExpense } = await import('../../hooks/useExpenses');
     const photo = new File(['bytes'], 'receipt.jpg', { type: 'image/jpeg' });
     await expect(addExpense(makeExpenseWrite(), photo)).rejects.toThrow();
+  });
+
+  // P1-B: uid-scoped storage path
+  it('storage path includes uid as orgs/{orgId}/receipts/{uid}/{expenseId}/{filename}', async () => {
+    const { addExpense } = await import('../../hooks/useExpenses');
+    const photo = new File(['bytes'], 'receipt.jpg', { type: 'image/jpeg' });
+    await addExpense(makeExpenseWrite(), photo);
+    expect(mockRef).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringMatching(/^orgs\/org-1\/receipts\/user-1\/[^/]+\/receipt\.jpg$/)
+    );
+  });
+
+  // P1-C: doc-first write order
+  it('creates Firestore doc before uploading to Storage', async () => {
+    const callOrder: string[] = [];
+    mockAddDoc.mockImplementation(async () => {
+      callOrder.push('addDoc');
+      return { id: 'expense-abc' } as unknown as DocumentReference;
+    });
+    mockUploadBytesResumable.mockImplementation(() => {
+      callOrder.push('upload');
+      return mockUploadTask;
+    });
+    const { addExpense } = await import('../../hooks/useExpenses');
+    await addExpense(makeExpenseWrite(), new File(['b'], 'r.jpg', { type: 'image/jpeg' }));
+    expect(callOrder.indexOf('addDoc')).toBeLessThan(callOrder.indexOf('upload'));
+  });
+
+  it('updates expense doc with receiptStoragePath after successful upload', async () => {
+    const { addExpense } = await import('../../hooks/useExpenses');
+    await addExpense(makeExpenseWrite(), new File(['b'], 'receipt.jpg', { type: 'image/jpeg' }));
+    expect(mockUpdateDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ receiptStoragePath: expect.stringMatching(/^orgs\/org-1\/receipts\/user-1\//) })
+    );
+  });
+
+  it('deletes expense doc and rethrows if storage upload fails', async () => {
+    mockUploadTask.on.mockImplementation(
+      (_event: string, _progress: unknown, error: (e: Error) => void) => {
+        error(new Error('upload failed'));
+      }
+    );
+    const { addExpense } = await import('../../hooks/useExpenses');
+    const photo = new File(['b'], 'receipt.jpg', { type: 'image/jpeg' });
+    await expect(addExpense(makeExpenseWrite(), photo)).rejects.toThrow('upload failed');
+    expect(mockDeleteDoc).toHaveBeenCalledOnce();
   });
 });
 

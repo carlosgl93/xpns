@@ -40,11 +40,20 @@ beforeEach(async () => {
 });
 
 describe('storage — receipt upload', () => {
-  it('member uploads receipt to own org', async () => {
+  it('member uploads receipt to uid-scoped path in own org', async () => {
     const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
     const storage = alice.storage();
-    const receiptRef = ref(storage, 'orgs/org1/receipts/exp1/receipt.jpg');
+    const receiptRef = ref(storage, 'orgs/org1/receipts/uid-alice/exp1/receipt.jpg');
     await assertSucceeds(
+      uploadBytes(receiptRef, FAKE_IMAGE, { contentType: 'image/jpeg' })
+    );
+  });
+
+  it('member cannot overwrite another member receipt (uid-scoped)', async () => {
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
+    const storage = alice.storage();
+    const receiptRef = ref(storage, 'orgs/org1/receipts/uid-bob/exp1/receipt.jpg');
+    await assertFails(
       uploadBytes(receiptRef, FAKE_IMAGE, { contentType: 'image/jpeg' })
     );
   });
@@ -52,7 +61,7 @@ describe('storage — receipt upload', () => {
   it('member cannot upload to different org', async () => {
     const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
     const storage = alice.storage();
-    const receiptRef = ref(storage, 'orgs/org2/receipts/exp1/receipt.jpg');
+    const receiptRef = ref(storage, 'orgs/org2/receipts/uid-alice/exp1/receipt.jpg');
     await assertFails(
       uploadBytes(receiptRef, FAKE_IMAGE, { contentType: 'image/jpeg' })
     );
@@ -61,7 +70,7 @@ describe('storage — receipt upload', () => {
   it('unauthenticated cannot upload', async () => {
     const anon = env.unauthenticatedContext();
     const storage = anon.storage();
-    const receiptRef = ref(storage, 'orgs/org1/receipts/exp1/receipt.jpg');
+    const receiptRef = ref(storage, 'orgs/org1/receipts/uid-alice/exp1/receipt.jpg');
     await assertFails(
       uploadBytes(receiptRef, FAKE_IMAGE, { contentType: 'image/jpeg' })
     );
@@ -70,24 +79,24 @@ describe('storage — receipt upload', () => {
   it('member can read receipt from own org', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await uploadBytes(
-        ref(ctx.storage(), 'orgs/org1/receipts/exp1/receipt.jpg'),
+        ref(ctx.storage(), 'orgs/org1/receipts/uid-alice/exp1/receipt.jpg'),
         FAKE_IMAGE,
         { contentType: 'image/jpeg' }
       );
     });
     const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
-    await assertSucceeds(getDownloadURL(ref(alice.storage(), 'orgs/org1/receipts/exp1/receipt.jpg')));
+    await assertSucceeds(getDownloadURL(ref(alice.storage(), 'orgs/org1/receipts/uid-alice/exp1/receipt.jpg')));
   });
 
   it('member cannot read receipt from different org', async () => {
     await env.withSecurityRulesDisabled(async (ctx) => {
       await uploadBytes(
-        ref(ctx.storage(), 'orgs/org2/receipts/exp1/receipt.jpg'),
+        ref(ctx.storage(), 'orgs/org2/receipts/uid-alice/exp1/receipt.jpg'),
         FAKE_IMAGE,
         { contentType: 'image/jpeg' }
       );
     });
     const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
-    await assertFails(getDownloadURL(ref(alice.storage(), 'orgs/org2/receipts/exp1/receipt.jpg')));
+    await assertFails(getDownloadURL(ref(alice.storage(), 'orgs/org2/receipts/uid-alice/exp1/receipt.jpg')));
   });
 });

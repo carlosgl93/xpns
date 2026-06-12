@@ -3,6 +3,7 @@ import { initializeApp, getApps } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 
+
 if (!getApps().length) initializeApp();
 
 export interface ProcessInviteInput {
@@ -26,6 +27,9 @@ export async function processInviteLogic(
 
   const inviteRef = db.doc(`orgs/${input.orgId}/invites/${input.token}`);
 
+  // P1-E: capture orgId from the invite document so claims are never set from client-controlled input.
+  let authorizedOrgId = input.orgId;
+
   // Transaction: atomic read-check-mark prevents concurrent double-redemption (TOCTOU).
   await db.runTransaction(async (txn) => {
     const inviteSnap = await txn.get(inviteRef);
@@ -48,17 +52,31 @@ export async function processInviteLogic(
       throw new HttpsError('already-exists', 'Invite has already been used');
     }
 
+    // Read orgId from the authoritative invite document, not from the client payload.
+    if (invite['orgId']) {
+      authorizedOrgId = invite['orgId'] as string;
+    }
+
     txn.update(inviteRef, {
       usedAt: FieldValue.serverTimestamp(),
       usedBy: uid,
     });
   });
 
-  // Claims set after transaction commits. If this throws, the idempotency check
-  // above lets the user retry and skip straight to here.
-  await auth.setCustomUserClaims(uid, { orgId: input.orgId, role: 'employee' });
+  // Claims set after transaction commits — orgId comes from the invite doc.
+  await auth.setCustomUserClaims(uid, { orgId: authorizedOrgId, role: 'employee' });
 
-  return { orgId: input.orgId };
+  // Add employee to org members so they appear in the admin filter.
+  const memberRef = db.doc(`orgs/${authorizedOrgId}/members/${uid}`);
+  await memberRef.set({
+    email,
+    displayName: email.split('@')[0],
+    role: 'employee',
+    status: 'active',
+    createdAt: FieldValue.serverTimestamp(),
+  });
+
+  return { orgId: authorizedOrgId };
 }
 
 export const processInvite = onCall(

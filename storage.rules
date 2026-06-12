@@ -4,15 +4,17 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // ── Receipts ─────────────────────────────────────────────────────────
-    // Path: orgs/{orgId}/receipts/{expenseId}/{filename}
-    match /orgs/{orgId}/receipts/{expenseId}/{filename} {
+    // Path: orgs/{orgId}/receipts/{uid}/{expenseId}/{filename}
+    // uid segment ensures only the submitter can write to their own receipt path.
+    match /orgs/{orgId}/receipts/{uid}/{expenseId}/{filename} {
       // Member can read receipts from their own org.
       allow read: if request.auth != null
                   && request.auth.token.orgId == orgId;
 
-      // Member can upload; max 15 MB, images only.
+      // Only the owning uid can write; max 15 MB, images only.
       allow write: if request.auth != null
                    && request.auth.token.orgId == orgId
+                   && request.auth.uid == uid
                    && request.resource.size <= 15 * 1024 * 1024
                    && request.resource.contentType.matches('image/.*');
 
