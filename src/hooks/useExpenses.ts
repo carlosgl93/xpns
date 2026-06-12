@@ -1,5 +1,42 @@
-import type { ExpenseWrite } from '../types/models';
+import type { Expense, ExpenseCategory, ExpenseStatus, ExpenseWrite } from '../types/models';
 import { authUser, authClaims } from './useAuth';
+
+export interface ExpenseFilters {
+  status?: ExpenseStatus;
+  submittedBy?: string;
+  category?: ExpenseCategory | string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}
+
+export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Promise<Expense[]> {
+  const { getDb } = await import('../lib/firebase');
+  const { collection, query, where, orderBy, limit, getDocs } = await import('firebase/firestore');
+
+  const db = await getDb();
+  const col = collection(db, `orgs/${orgId}/expenses`);
+
+  const constraints: any[] = [];
+  if (filters.status) constraints.push(where('status', '==', filters.status));
+  if (filters.submittedBy) constraints.push(where('submittedBy', '==', filters.submittedBy));
+  if (filters.category) constraints.push(where('category', '==', filters.category));
+  constraints.push(orderBy('date', 'desc'));
+  constraints.push(limit(100));
+
+  const q = query(col, ...constraints);
+  const snap = await getDocs(q);
+  return snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as Expense[];
+}
+
+export async function markAsPaid(orgId: string, expenseId: string): Promise<void> {
+  const { getDb } = await import('../lib/firebase');
+  const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+  const db = await getDb();
+  await updateDoc(doc(db, `orgs/${orgId}/expenses/${expenseId}`), {
+    status: 'paid',
+    paidAt: serverTimestamp(),
+  });
+}
 
 export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<string> {
   const user = authUser.value;

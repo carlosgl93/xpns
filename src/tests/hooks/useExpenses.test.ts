@@ -5,6 +5,13 @@ const mockAddDoc = vi.fn();
 const mockCollection = vi.fn();
 const mockServerTimestamp = vi.fn(() => ({ _type: 'serverTimestamp' }));
 const mockRef = vi.fn();
+const mockQuery = vi.fn();
+const mockWhere = vi.fn();
+const mockOrderBy = vi.fn();
+const mockLimit = vi.fn();
+const mockGetDocs = vi.fn();
+const mockUpdateDoc = vi.fn();
+const mockDoc = vi.fn();
 
 const mockUploadTask = {
   on: vi.fn((_event: string, _progress: unknown, _error: unknown, complete: () => void) => {
@@ -24,7 +31,13 @@ vi.mock('firebase/firestore', () => ({
   collection: mockCollection,
   addDoc: mockAddDoc,
   serverTimestamp: mockServerTimestamp,
-  doc: mockRef,
+  doc: mockDoc,
+  query: mockQuery,
+  where: mockWhere,
+  orderBy: mockOrderBy,
+  limit: mockLimit,
+  getDocs: mockGetDocs,
+  updateDoc: mockUpdateDoc,
 }));
 
 vi.mock('firebase/storage', () => ({
@@ -138,6 +151,106 @@ describe('addExpense', () => {
     const { addExpense } = await import('../../hooks/useExpenses');
     const photo = new File(['bytes'], 'receipt.jpg', { type: 'image/jpeg' });
     await expect(addExpense(makeExpenseWrite(), photo)).rejects.toThrow();
+  });
+});
+
+describe('fetchExpenses', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockQuery.mockReturnValue('query-ref');
+    mockWhere.mockReturnValue('where-ref');
+    mockOrderBy.mockReturnValue('order-ref');
+    mockLimit.mockReturnValue('limit-ref');
+    mockCollection.mockReturnValue('col-ref');
+    mockGetDocs.mockResolvedValue({
+      docs: [
+        {
+          id: 'exp-1',
+          data: () => ({
+            submittedBy: 'user-1',
+            submitterName: 'Carlos',
+            amount: 5000,
+            currency: 'CLP',
+            category: 'food',
+            description: 'Almuerzo',
+            receiptStoragePath: 'orgs/org-1/receipts/exp-1/r.jpg',
+            status: 'pending',
+            date: { seconds: 1700000000, nanoseconds: 0 },
+            createdAt: { seconds: 1700000000, nanoseconds: 0 },
+          }),
+        },
+      ],
+    });
+  });
+
+  it('queries orgs/{orgId}/expenses collection', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', {});
+    expect(mockCollection).toHaveBeenCalledWith(expect.anything(), 'orgs/org-1/expenses');
+  });
+
+  it('returns expenses with id from doc snapshot', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    const result = await fetchExpenses('org-1', {});
+    expect(result).toHaveLength(1);
+    expect(result[0]!.id).toBe('exp-1');
+    expect(result[0]!.amount).toBe(5000);
+  });
+
+  it('applies status filter when provided', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', { status: 'pending' });
+    expect(mockWhere).toHaveBeenCalledWith('status', '==', 'pending');
+  });
+
+  it('applies submittedBy filter when provided', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', { submittedBy: 'user-1' });
+    expect(mockWhere).toHaveBeenCalledWith('submittedBy', '==', 'user-1');
+  });
+
+  it('applies category filter when provided', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', { category: 'food' });
+    expect(mockWhere).toHaveBeenCalledWith('category', '==', 'food');
+  });
+
+  it('orders results by date descending', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', {});
+    expect(mockOrderBy).toHaveBeenCalledWith('date', 'desc');
+  });
+
+  it('limits to 100 results', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', {});
+    expect(mockLimit).toHaveBeenCalledWith(100);
+  });
+});
+
+describe('markAsPaid', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockUpdateDoc.mockResolvedValue(undefined);
+    mockDoc.mockReturnValue('doc-ref');
+  });
+
+  it('calls updateDoc with status:paid and paidAt:serverTimestamp', async () => {
+    const { markAsPaid } = await import('../../hooks/useExpenses');
+    await markAsPaid('org-1', 'exp-1');
+    expect(mockUpdateDoc).toHaveBeenCalledWith(
+      'doc-ref',
+      expect.objectContaining({ status: 'paid', paidAt: expect.anything() })
+    );
+  });
+
+  it('targets the correct expense document path', async () => {
+    const { markAsPaid } = await import('../../hooks/useExpenses');
+    await markAsPaid('org-1', 'exp-1');
+    expect(mockDoc).toHaveBeenCalledWith(
+      expect.anything(),
+      'orgs/org-1/expenses/exp-1'
+    );
   });
 });
 
