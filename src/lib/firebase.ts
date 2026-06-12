@@ -2,6 +2,7 @@ import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
 import type { FirebaseStorage } from 'firebase/storage';
+import type { Functions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: import.meta.env.PUBLIC_FIREBASE_API_KEY,
@@ -50,4 +51,16 @@ export async function getStorage(): Promise<FirebaseStorage> {
     }
   }
   return _storage;
+}
+
+let _functions: Functions | null = null;
+export async function getFunctionsClient(region = 'us-east1'): Promise<Functions> {
+  if (!_functions) {
+    const { getFunctions, connectFunctionsEmulator } = await import('firebase/functions');
+    _functions = getFunctions(getApp(), region);
+    if (import.meta.env.PUBLIC_USE_EMULATORS === 'true') {
+      connectFunctionsEmulator(_functions, 'localhost', 5001);
+    }
+  }
+  return _functions;
 }

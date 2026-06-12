@@ -1,0 +1,72 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ──────────────────────────────────────────────────────────
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    function claimedOrg(orgId) {
+      return isAuthed() && request.auth.token.orgId == orgId;
+    }
+
+    function isAdmin(orgId) {
+      return claimedOrg(orgId) && request.auth.token.role == 'admin';
+    }
+
+    function isEmployee(orgId) {
+      return claimedOrg(orgId) && request.auth.token.role == 'employee';
+    }
+
+    function isMember(orgId) {
+      return isAdmin(orgId) || isEmployee(orgId);
+    }
+
+    // ── Orgs ─────────────────────────────────────────────────────────────
+    match /orgs/{orgId} {
+      // Any authenticated user can create (self-service registration).
+      // Cloud Function immediately sets admin claim after creation.
+      allow create: if isAuthed();
+      allow read: if claimedOrg(orgId);
+      allow update: if isAdmin(orgId);
+      allow delete: if false;
+
+      // ── Members ────────────────────────────────────────────────────────
+      match /members/{uid} {
+        allow read: if isMember(orgId);
+        // Cloud Function writes member docs; clients cannot create members directly.
+        allow write: if false;
+      }
+
+      // ── Invites ────────────────────────────────────────────────────────
+      match /invites/{token} {
+        // Only the invited email address can read the token (email-specific invite).
+        // Cloud Function validates email match + expiry + not-used before setting claims.
+        allow read: if isAuthed()
+                    && resource.data.email == request.auth.token.email;
+        // Only admins can create/update/delete invite tokens.
+        allow write: if isAdmin(orgId);
+      }
+
+      // ── Expenses ───────────────────────────────────────────────────────
+      match /expenses/{expenseId} {
+        // Admin sees all; employee sees only their own.
+        allow read: if isAdmin(orgId)
+                    || (isMember(orgId) && resource.data.submittedBy == request.auth.uid);
+
+        // Any org member can submit an expense.
+        allow create: if isMember(orgId)
+                      // Enforce submittedBy cannot be spoofed.
+                      && request.resource.data.submittedBy == request.auth.uid
+                      && request.resource.data.status == 'pending';
+
+        // Only admin can update (mark paid, etc.). Employee cannot edit.
+        allow update: if isAdmin(orgId);
+
+        allow delete: if false;
+      }
+    }
+  }
+}
