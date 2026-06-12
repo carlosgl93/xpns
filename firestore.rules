@@ -65,7 +65,11 @@ service cloud.firestore {
         // Only admin can update (mark paid, etc.). Employee cannot edit.
         allow update: if isAdmin(orgId);
 
-        allow delete: if false;
+        // Narrow delete: only for draft docs (no storage path yet) by the submitter.
+        // Enables client-side rollback when the storage upload fails after addDoc.
+        allow delete: if isMember(orgId)
+                      && resource.data.submittedBy == request.auth.uid
+                      && resource.data.receiptStoragePath == '';
       }
     }
   }

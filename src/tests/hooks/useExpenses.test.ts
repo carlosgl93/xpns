@@ -101,7 +101,7 @@ describe('addExpense', () => {
     mockDoc.mockReturnValue('doc-ref');
   });
 
-  it('uploads photo to orgs/{orgId}/receipts/{expenseId}/{filename} in Storage', async () => {
+  it('uploads photo to orgs/{orgId}/receipts/{uid}/{expenseId}/{filename} in Storage', async () => {
     const { addExpense } = await import('../../hooks/useExpenses');
     const photo = new File(['bytes'], 'receipt.jpg', { type: 'image/jpeg' });
     const data = makeExpenseWrite();
