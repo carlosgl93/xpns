@@ -1,0 +1,37 @@
+---
+import ExpenseForm from '../../../components/expenses/ExpenseForm';
+---
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nuevo gasto — xpns</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+  </head>
+  <body>
+    <main>
+      <h1>Registrar gasto</h1>
+      <ExpenseForm client:load />
+    </main>
+    <script>
+      import { authLoading, authUser } from '../../../hooks/useAuth';
+      import { initAuth } from '../../../hooks/useAuth';
+
+      const unsubscribe = await initAuth();
+
+      // Wait for auth check then redirect if not logged in
+      const check = setInterval(() => {
+        if (!authLoading.value) {
+          clearInterval(check);
+          if (!authUser.value) {
+            window.location.href = '/login';
+          }
+        }
+      }, 50);
+
+      document.addEventListener('astro:before-preparation', () => {
+        unsubscribe();
+      });
+    </script>
+  </body>
+</html>
