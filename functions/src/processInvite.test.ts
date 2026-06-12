@@ -9,7 +9,8 @@ const mockRunTransaction = vi.fn().mockImplementation(
     await fn({ get: mockTxnGet, update: mockTxnUpdate });
   }
 );
-const mockDocFn = vi.fn().mockReturnValue({ id: 'mock-invite-ref' });
+const mockDocSet = vi.fn().mockResolvedValue(undefined);
+const mockDocFn = vi.fn().mockReturnValue({ id: 'mock-invite-ref', set: mockDocSet });
 
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(),
@@ -50,6 +51,8 @@ describe('processInviteLogic', () => {
     mockGetUser.mockResolvedValue({ customClaims: null });
     mockTxnUpdate.mockResolvedValue(undefined);
     mockSetCustomUserClaims.mockResolvedValue(undefined);
+    mockDocSet.mockResolvedValue(undefined);
+    mockDocFn.mockReturnValue({ id: 'mock-invite-ref', set: mockDocSet });
     mockRunTransaction.mockImplementation(
       async (fn: (txn: { get: typeof mockTxnGet; update: typeof mockTxnUpdate }) => Promise<void>) => {
         await fn({ get: mockTxnGet, update: mockTxnUpdate });
@@ -147,5 +150,26 @@ describe('processInviteLogic', () => {
     await expect(
       processInviteLogic('uid-bob', 'bob@test.com', { token: 'tok1', orgId: 'org1' })
     ).resolves.toEqual({ orgId: 'org1' });
+  });
+
+  // P1-E: orgId in claims must come from the invite doc, not from client input
+  it('sets claims with orgId from invite doc, not input.orgId', async () => {
+    // Invite doc has orgId: 'org-from-doc'; client passes orgId: 'org1' (same path, but claims must use doc value)
+    mockTxnGet.mockResolvedValue(makeInviteSnap({ orgId: 'org-from-doc' }));
+    const { processInviteLogic } = await import('./processInvite');
+    await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' });
+
+    expect(mockSetCustomUserClaims).toHaveBeenCalledWith('uid-alice', {
+      orgId: 'org-from-doc',
+      role: 'employee',
+    });
+  });
+
+  it('creates member doc under org from invite doc, not input.orgId', async () => {
+    mockTxnGet.mockResolvedValue(makeInviteSnap({ orgId: 'org-from-doc' }));
+    const { processInviteLogic } = await import('./processInvite');
+    await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' });
+
+    expect(mockDocFn).toHaveBeenCalledWith('orgs/org-from-doc/members/uid-alice');
   });
 });

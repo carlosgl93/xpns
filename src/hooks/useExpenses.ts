@@ -44,30 +44,38 @@ export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<s
   if (!user || !claims?.orgId) throw new Error('Not authenticated');
 
   const { getDb, getStorage } = await import('../lib/firebase');
-  const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+  const { collection, addDoc, deleteDoc, updateDoc, serverTimestamp } = await import('firebase/firestore');
   const { ref, uploadBytesResumable } = await import('firebase/storage');
 
   const db = await getDb();
   const storage = await getStorage();
-
-  const tempId = crypto.randomUUID();
-  const storagePath = `orgs/${claims.orgId}/receipts/${tempId}/${photoFile.name}`;
-  const storageRef = ref(storage, storagePath);
-
-  await new Promise<void>((resolve, reject) => {
-    const task = uploadBytesResumable(storageRef, photoFile);
-    task.on('state_changed', undefined, reject, resolve);
-  });
-
   const submitterName = user.displayName || user.email?.split('@')[0] || '';
 
+  // P1-C: create doc first so there is no orphaned storage file on addDoc failure
   const docRef = await addDoc(collection(db, `orgs/${claims.orgId}/expenses`), {
     ...data,
     submittedBy: user.uid,
     submitterName,
-    receiptStoragePath: storagePath,
+    receiptStoragePath: '',
     createdAt: serverTimestamp(),
   });
+
+  // P1-B: uid-scoped path prevents any org member from overwriting another's receipt
+  const storagePath = `orgs/${claims.orgId}/receipts/${user.uid}/${docRef.id}/${photoFile.name}`;
+  const storageRef = ref(storage, storagePath);
+
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const task = uploadBytesResumable(storageRef, photoFile);
+      task.on('state_changed', undefined, reject, resolve);
+    });
+  } catch (uploadErr) {
+    // P1-C: upload failed — clean up the expense doc to avoid phantom records
+    await deleteDoc(docRef);
+    throw uploadErr;
+  }
+
+  await updateDoc(docRef, { receiptStoragePath: storagePath });
 
   return docRef.id;
 }

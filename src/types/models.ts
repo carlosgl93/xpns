@@ -23,6 +23,7 @@ export interface OrgMember {
 
 export interface Invite {
   id?: string;
+  orgId: string;
   email?: string;
   createdAt: Timestamp;
   expiresAt: Timestamp;
