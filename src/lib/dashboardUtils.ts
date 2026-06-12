@@ -38,10 +38,10 @@ export function groupByEmployee(expenses: Expense[]): EmployeeTotal[] {
 }
 
 function csvCell(value: string | number): string {
-  const str = String(value);
-  return str.includes(',') || str.includes('"') || str.includes('\n')
-    ? `"${str.replace(/"/g, '""')}"`
-    : str;
+  let str = String(value);
+  // Prevent formula injection in Excel/Sheets
+  if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`;
+  return /[,"\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
 }
 
 export function generateCsv(expenses: Expense[]): string {

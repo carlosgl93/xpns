@@ -158,4 +158,11 @@ describe('generateCsv', () => {
     const csv = generateCsv([expense]);
     expect(csv).toContain('"Taxi, ida y vuelta"');
   });
+
+  it('prefixes formula-starting cells with a single quote to prevent injection', () => {
+    const expense = makeExpense({ description: '=SUM(A1:A10)', submitterName: '+malicious' });
+    const csv = generateCsv([expense]);
+    expect(csv).toContain("'=SUM(A1:A10)");
+    expect(csv).toContain("'+malicious");
+  });
 });
