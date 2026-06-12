@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@astrojs/preact": "^5.1.5",
+    "@preact/signals": "^2.9.1",
     "@vite-pwa/astro": "^1.2.0",
     "astro": "^6.4.6",
     "firebase": "^12.14.0",
