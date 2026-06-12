@@ -34,6 +34,7 @@ export default function AdminDashboard() {
 
       const claims = authClaims.value;
       if (!claims?.orgId) {
+        unsubscribe();
         window.location.href = '/login';
         return;
       }
@@ -41,7 +42,7 @@ export default function AdminDashboard() {
       setOrgId(claims.orgId);
       setIsAdmin(claims.role === 'admin');
 
-      return () => unsubscribe();
+      return unsubscribe;
     })();
   }, []);
 
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
     if (!orgId) return;
     loadData();
     if (isAdmin) loadMembers();
-  }, [orgId, filters]);
+  }, [orgId, filters, isAdmin]);
 
   async function loadData() {
     setLoading(true);
@@ -82,9 +83,13 @@ export default function AdminDashboard() {
   }
 
   async function handleMarkPaid(expenseId: string) {
-    const { markAsPaid } = await import('../../hooks/useExpenses');
-    await markAsPaid(orgId!, expenseId);
-    await loadData();
+    try {
+      const { markAsPaid } = await import('../../hooks/useExpenses');
+      await markAsPaid(orgId!, expenseId);
+      await loadData();
+    } catch {
+      setError('Error al marcar como pagado.');
+    }
   }
 
   if (loading) return <p>Cargando...</p>;

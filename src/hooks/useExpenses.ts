@@ -50,7 +50,6 @@ export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<s
   const db = await getDb();
   const storage = await getStorage();
 
-  // Generate a temporary ID for the storage path, then use the Firestore doc id
   const tempId = crypto.randomUUID();
   const storagePath = `orgs/${claims.orgId}/receipts/${tempId}/${photoFile.name}`;
   const storageRef = ref(storage, storagePath);
@@ -60,9 +59,12 @@ export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<s
     task.on('state_changed', undefined, reject, resolve);
   });
 
+  const submitterName = user.displayName || user.email?.split('@')[0] || '';
+
   const docRef = await addDoc(collection(db, `orgs/${claims.orgId}/expenses`), {
     ...data,
     submittedBy: user.uid,
+    submitterName,
     receiptStoragePath: storagePath,
     createdAt: serverTimestamp(),
   });

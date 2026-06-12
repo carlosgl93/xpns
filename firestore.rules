@@ -29,7 +29,8 @@ service cloud.firestore {
       // Any authenticated user can create (self-service registration).
       // Cloud Function immediately sets admin claim after creation.
       allow create: if isAuthed();
-      allow read, update: if claimedOrg(orgId);
+      allow read: if claimedOrg(orgId);
+      allow update: if isAdmin(orgId);
       allow delete: if false;
 
       // ── Members ────────────────────────────────────────────────────────
