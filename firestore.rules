@@ -41,8 +41,10 @@ service cloud.firestore {
 
       // ── Invites ────────────────────────────────────────────────────────
       match /invites/{token} {
-        // Any authenticated user can read a token (needed for /join flow).
-        allow read: if isAuthed();
+        // Only the invited email address can read the token (email-specific invite).
+        // Cloud Function validates email match + expiry + not-used before setting claims.
+        allow read: if isAuthed()
+                    && resource.data.email == request.auth.token.email;
         // Only admins can create/update/delete invite tokens.
         allow write: if isAdmin(orgId);
       }
