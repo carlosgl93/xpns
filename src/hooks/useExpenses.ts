@@ -97,7 +97,19 @@ export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<s
     throw uploadErr;
   }
 
-  await updateDoc(docRef, { receiptStoragePath: storagePath });
+  try {
+    await updateDoc(docRef, { receiptStoragePath: storagePath });
+  } catch (updateErr) {
+    // #2 (review): updateDoc failed after upload — roll back the expense doc to
+    // avoid an orphan with an empty receiptStoragePath. Log the secondary error
+    // so the original update error still propagates.
+    try {
+      await deleteDoc(docRef);
+    } catch (cleanupErr) {
+      console.error('addExpense: updateDoc rollback deleteDoc failed', cleanupErr);
+    }
+    throw updateErr;
+  }
 
   return docRef.id;
 }
