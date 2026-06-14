@@ -88,7 +88,12 @@ export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<s
     });
   } catch (uploadErr) {
     // P1-C: upload failed — clean up the expense doc to avoid phantom records
-    await deleteDoc(docRef);
+    try {
+      await deleteDoc(docRef);
+    } catch (cleanupErr) {
+      // P1-C (review): log the secondary error so the original upload error still propagates
+      console.error('addExpense: cleanup deleteDoc failed', cleanupErr);
+    }
     throw uploadErr;
   }
 
