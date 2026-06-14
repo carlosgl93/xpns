@@ -217,6 +217,44 @@ describe('expenses — paymentSource validation', () => {
   });
 });
 
+describe('expenses — employee update of receiptStoragePath', () => {
+  it('employee can set receiptStoragePath on own doc', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-alice');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertSucceeds(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), {
+        receiptStoragePath: 'orgs/org1/receipts/uid-alice/exp-rsp/r.jpg',
+      })
+    );
+  });
+
+  it('employee cannot change status on own doc', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-alice');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), { status: 'paid' })
+    );
+  });
+
+  it('employee cannot change amount on own doc', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-alice');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), { amount: 9999 })
+    );
+  });
+
+  it('employee cannot change receiptStoragePath on doc owned by another user', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-bob');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), {
+        receiptStoragePath: 'orgs/org1/receipts/uid-alice/exp-rsp/r.jpg',
+      })
+    );
+  });
+});
+
 // ── Invites ───────────────────────────────────────────────────────────────────
 
 describe('invites — email-specific gate', () => {

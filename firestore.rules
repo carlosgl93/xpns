@@ -65,8 +65,14 @@ service cloud.firestore {
                       // Source of truth: src/types/models.ts → PaymentSource enum.
                       && request.resource.data.paymentSource in ['corporate_credit', 'corporate_debit', 'personal_credit', 'personal_debit', 'cash'];
 
-        // Only admin can update (mark paid, etc.). Employee cannot edit.
-        allow update: if isAdmin(orgId);
+        // Admin can update anything (mark paid, etc.). Employee can only patch
+        // receiptStoragePath on a doc they own (post-upload write of the storage
+        // path; see addExpense flow in src/hooks/useExpenses.ts).
+        allow update: if isAdmin(orgId)
+                      || (isMember(orgId)
+                          && resource.data.submittedBy == request.auth.uid
+                          && request.resource.data.diff(resource.data).affectedKeys()
+                               .hasOnly(['receiptStoragePath']));
 
         // Narrow delete: only for draft docs (no storage path yet) by the submitter.
         // Enables client-side rollback when the storage upload fails after addDoc.
