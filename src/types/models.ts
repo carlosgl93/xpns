@@ -39,6 +39,14 @@ export enum ExpenseCategory {
   Other = 'other',
 }
 
+export enum PaymentSource {
+  CorporateCredit = 'corporate_credit',
+  CorporateDebit = 'corporate_debit',
+  PersonalCredit = 'personal_credit',
+  PersonalDebit = 'personal_debit',
+  Cash = 'cash',
+}
+
 export type ExpenseStatus = 'pending' | 'paid';
 
 export interface Expense {
@@ -48,6 +56,7 @@ export interface Expense {
   amount: number;
   currency: string;
   category: ExpenseCategory;
+  paymentSource: PaymentSource;
   description: string;
   receiptStoragePath: string;
   status: ExpenseStatus;
