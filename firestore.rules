@@ -60,7 +60,10 @@ service cloud.firestore {
         allow create: if isMember(orgId)
                       // Enforce submittedBy cannot be spoofed.
                       && request.resource.data.submittedBy == request.auth.uid
-                      && request.resource.data.status == 'pending';
+                      && request.resource.data.status == 'pending'
+                      // paymentSource must be one of the five allowed values.
+                      // Source of truth: src/types/models.ts → PaymentSource enum.
+                      && request.resource.data.paymentSource in ['corporate_credit', 'corporate_debit', 'personal_credit', 'personal_debit', 'cash'];
 
         // Only admin can update (mark paid, etc.). Employee cannot edit.
         allow update: if isAdmin(orgId);
