@@ -1,10 +1,11 @@
-import type { Expense, ExpenseCategory, ExpenseStatus, ExpenseWrite } from '../types/models';
+import type { Expense, ExpenseCategory, ExpenseStatus, ExpenseWrite, PaymentSource } from '../types/models';
 import { authUser, authClaims } from './useAuth';
 
 export interface ExpenseFilters {
   status?: ExpenseStatus;
   submittedBy?: string;
   category?: ExpenseCategory | string;
+  paymentSource?: PaymentSource;
   dateFrom?: Date;
   dateTo?: Date;
 }
@@ -20,6 +21,7 @@ export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Pro
   if (filters.status) constraints.push(where('status', '==', filters.status));
   if (filters.submittedBy) constraints.push(where('submittedBy', '==', filters.submittedBy));
   if (filters.category) constraints.push(where('category', '==', filters.category));
+  if (filters.paymentSource) constraints.push(where('paymentSource', '==', filters.paymentSource));
   if (filters.dateFrom) constraints.push(where('date', '>=', Timestamp.fromDate(filters.dateFrom)));
   if (filters.dateTo) constraints.push(where('date', '<=', Timestamp.fromDate(filters.dateTo)));
   constraints.push(orderBy('date', 'desc'));

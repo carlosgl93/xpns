@@ -303,6 +303,19 @@ describe('fetchExpenses', () => {
     expect(mockWhere).toHaveBeenCalledWith('category', '==', 'food');
   });
 
+  it('applies paymentSource filter when provided', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', { paymentSource: 'personal_debit' });
+    expect(mockWhere).toHaveBeenCalledWith('paymentSource', '==', 'personal_debit');
+  });
+
+  it('omits paymentSource where() clause when filter is undefined', async () => {
+    const { fetchExpenses } = await import('../../hooks/useExpenses');
+    await fetchExpenses('org-1', {});
+    const whereFields = mockWhere.mock.calls.map((c) => c[0]);
+    expect(whereFields).not.toContain('paymentSource');
+  });
+
   it('orders results by date descending', async () => {
     const { fetchExpenses } = await import('../../hooks/useExpenses');
     await fetchExpenses('org-1', {});
@@ -382,6 +395,7 @@ function makeExpenseWrite() {
     amount: 5000,
     currency: 'CLP',
     category: 'food' as const,
+    paymentSource: 'corporate_credit' as const,
     description: 'Almuerzo',
     receiptStoragePath: '',
     status: 'pending' as const,

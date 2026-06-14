@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import type { Expense } from '../../types/models';
+import type { Expense, PaymentSource } from '../../types/models';
 import { ExpenseCategory } from '../../types/models';
 import type { ExpenseFilters } from '../../hooks/useExpenses';
 import type { OrgMember } from '../../types/models';
@@ -18,6 +18,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   [ExpenseCategory.Transport]: 'Transporte',
   [ExpenseCategory.Entertainment]: 'Entretenimiento',
   [ExpenseCategory.Other]: 'Otro',
+};
+
+const PAYMENT_SOURCE_LABELS: Record<PaymentSource, string> = {
+  [PaymentSource.CorporateCredit]: 'Tarjeta de crédito corporativa',
+  [PaymentSource.CorporateDebit]: 'Tarjeta de débito corporativa',
+  [PaymentSource.PersonalCredit]: 'Tarjeta de crédito personal',
+  [PaymentSource.PersonalDebit]: 'Tarjeta de débito personal',
+  [PaymentSource.Cash]: 'Efectivo',
 };
 
 export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, onFiltersChange }: Props) {
@@ -79,6 +87,18 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
           <option value="pending">Pendiente</option>
           <option value="paid">Pagado</option>
         </select>
+
+        <select
+          aria-label="Filtrar por origen de pago"
+          onChange={(e) =>
+            updateFilter('paymentSource', ((e.target as HTMLSelectElement).value || undefined) as any)
+          }
+        >
+          <option value="">Todos los orígenes de pago</option>
+          {Object.entries(PAYMENT_SOURCE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
       </div>
 
       <table>
@@ -87,6 +107,7 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
             <th>Fecha</th>
             {isAdmin && <th>Empleado</th>}
             <th>Categoría</th>
+            <th>Origen de pago</th>
             <th>Descripción</th>
             <th>Monto</th>
             <th>Estado</th>
@@ -96,7 +117,7 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
         <tbody>
           {expenses.length === 0 ? (
             <tr>
-              <td colSpan={isAdmin ? 7 : 5}>Sin gastos</td>
+              <td colSpan={isAdmin ? 8 : 6}>Sin gastos</td>
             </tr>
           ) : (
             expenses.map((e) => (
@@ -104,6 +125,7 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
                 <td>{formatDate(e.date)}</td>
                 {isAdmin && <td>{e.submitterName}</td>}
                 <td>{CATEGORY_LABELS[e.category] ?? e.category}</td>
+                <td>{PAYMENT_SOURCE_LABELS[e.paymentSource as PaymentSource] ?? e.paymentSource}</td>
                 <td>{e.description}</td>
                 <td>
                   {new Intl.NumberFormat('es-CL', { style: 'currency', currency: e.currency }).format(e.amount)}
