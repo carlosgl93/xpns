@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import type { Expense, PaymentSource } from '../../types/models';
+import type { Expense, ExpenseStatus, PaymentSource } from '../../types/models';
 import { ExpenseCategory } from '../../types/models';
 import type { ExpenseFilters } from '../../hooks/useExpenses';
 import type { OrgMember } from '../../types/models';
@@ -73,7 +73,7 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
         <select
           aria-label="Filtrar por estado"
           onChange={(e) =>
-            updateFilter('status', ((e.target as HTMLSelectElement).value || undefined) as any)
+            updateFilter('status', ((e.target as HTMLSelectElement).value || undefined) as ExpenseStatus | undefined)
           }
         >
           <option value="">Todos los estados</option>
@@ -84,7 +84,7 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
         <select
           aria-label="Filtrar por origen de pago"
           onChange={(e) =>
-            updateFilter('paymentSource', ((e.target as HTMLSelectElement).value || undefined) as any)
+            updateFilter('paymentSource', ((e.target as HTMLSelectElement).value || undefined) as PaymentSource | undefined)
           }
         >
           <option value="">Todos los orígenes de pago</option>
