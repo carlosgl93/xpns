@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { addExpense } from '../../hooks/useExpenses';
-import { ExpenseCategory } from '../../types/models';
+import { ExpenseCategory, PaymentSource } from '../../types/models';
 import type { Timestamp } from 'firebase/firestore';
 
 export interface ExpenseFormFields {
@@ -8,6 +8,7 @@ export interface ExpenseFormFields {
   amount: number;
   currency: string;
   category: string;
+  paymentSource: string;
   description: string;
   photo: File | null;
 }
@@ -25,6 +26,9 @@ export function validateExpenseForm(fields: ExpenseFormFields): FormErrors {
   }
   if (!fields.category) {
     errors.category = 'Selecciona una categoría';
+  }
+  if (!fields.paymentSource) {
+    errors.paymentSource = 'Selecciona el origen del pago';
   }
   if (!fields.date) {
     errors.date = 'La fecha es requerida';
@@ -44,11 +48,20 @@ export function validateExpenseForm(fields: ExpenseFormFields): FormErrors {
 
 const CURRENCIES = ['CLP', 'ARS', 'COP', 'MXN', 'PEN', 'BRL', 'USD', 'EUR'];
 
+const PAYMENT_SOURCE_FORM_LABELS: Record<PaymentSource, string> = {
+  [PaymentSource.CorporateCredit]: 'Tarjeta de crédito corporativa',
+  [PaymentSource.CorporateDebit]: 'Tarjeta de débito corporativa',
+  [PaymentSource.PersonalCredit]: 'Tarjeta de crédito personal',
+  [PaymentSource.PersonalDebit]: 'Tarjeta de débito personal',
+  [PaymentSource.Cash]: 'Efectivo',
+};
+
 const INITIAL: ExpenseFormFields = {
   date: '',
   amount: 0,
   currency: '',
   category: '',
+  paymentSource: '',
   description: '',
   photo: null,
 };
@@ -84,6 +97,7 @@ export default function ExpenseForm() {
           amount: form.amount,
           currency: form.currency,
           category: form.category as ExpenseCategory,
+          paymentSource: form.paymentSource as PaymentSource,
           description: form.description,
           receiptStoragePath: '',
           status: 'pending',
@@ -171,6 +185,22 @@ export default function ExpenseForm() {
           ))}
         </select>
         {errors.category && <span>{errors.category}</span>}
+      </div>
+
+      <div>
+        <label htmlFor="paymentSource">Origen de pago</label>
+        <select
+          id="paymentSource"
+          value={form.paymentSource}
+          onChange={(e) => setField('paymentSource', (e.target as HTMLSelectElement).value)}
+          required
+        >
+          <option value="">Seleccionar...</option>
+          {Object.values(PaymentSource).map((value) => (
+            <option key={value} value={value}>{PAYMENT_SOURCE_FORM_LABELS[value]}</option>
+          ))}
+        </select>
+        {errors.paymentSource && <span>{errors.paymentSource}</span>}
       </div>
 
       <div>

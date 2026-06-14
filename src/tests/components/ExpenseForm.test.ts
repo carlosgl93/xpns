@@ -7,6 +7,7 @@ function makeValid(): ExpenseFormFields {
     amount: 5000,
     currency: 'CLP',
     category: 'food',
+    paymentSource: 'corporate_credit',
     description: 'Almuerzo',
     photo: new File(['bytes'], 'receipt.jpg', { type: 'image/jpeg' }),
   };
@@ -38,6 +39,17 @@ describe('validateExpenseForm', () => {
     expect(errors.category).toBeDefined();
   });
 
+  it('requires paymentSource to be selected', () => {
+    const errors = validateExpenseForm({ ...makeValid(), paymentSource: '' });
+    expect(errors.paymentSource).toBeDefined();
+  });
+
+  it('accepts any non-empty paymentSource value (enum membership enforced server-side)', () => {
+    // Mirrors category: client only checks non-empty. Server rule rejects unknown values.
+    const errors = validateExpenseForm({ ...makeValid(), paymentSource: 'banana' });
+    expect(errors.paymentSource).toBeUndefined();
+  });
+
   it('rejects future dates', () => {
     const errors = validateExpenseForm({ ...makeValid(), date: '2099-12-31' });
     expect(errors.date).toBeDefined();
@@ -56,8 +68,9 @@ describe('validateExpenseForm', () => {
   });
 
   it('returns multiple errors when multiple fields invalid', () => {
-    const errors = validateExpenseForm({ ...makeValid(), amount: 0, currency: '' });
+    const errors = validateExpenseForm({ ...makeValid(), amount: 0, currency: '', paymentSource: '' });
     expect(errors.amount).toBeDefined();
     expect(errors.currency).toBeDefined();
+    expect(errors.paymentSource).toBeDefined();
   });
 });
