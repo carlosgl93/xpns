@@ -217,6 +217,16 @@ describe('expenses — paymentSource validation', () => {
   });
 });
 
+describe('expenses — admin paymentSource on update', () => {
+  it('admin cannot set paymentSource to non-enum value on existing expense', async () => {
+    await seedExpense('org1', 'exp-ps-up', 'uid-alice');
+    const admin = env.authenticatedContext('uid-admin', makeAuth('uid-admin', 'admin@test.com', 'org1', 'admin'));
+    await assertFails(
+      updateDoc(doc(admin.firestore(), 'orgs/org1/expenses/exp-ps-up'), { paymentSource: 'banana' })
+    );
+  });
+});
+
 describe('expenses — employee update of receiptStoragePath', () => {
   it('employee can set receiptStoragePath on own doc', async () => {
     await seedExpense('org1', 'exp-rsp', 'uid-alice');
