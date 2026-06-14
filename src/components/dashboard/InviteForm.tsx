@@ -6,6 +6,19 @@ export default function InviteForm() {
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('clipboard write failed', err);
+      setError('No se pudo copiar al portapapeles. Cópialo manualmente.');
+    }
+  }
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
@@ -63,8 +76,8 @@ export default function InviteForm() {
         <div>
           <p>Link de invitación (válido 7 días):</p>
           <input type="text" readOnly value={link} style={{ width: '100%' }} onClick={(e) => (e.target as HTMLInputElement).select()} />
-          <button type="button" onClick={() => navigator.clipboard.writeText(link)}>
-            Copiar
+          <button type="button" onClick={handleCopy}>
+            {copied ? 'Copiado' : 'Copiar'}
           </button>
         </div>
       )}
