@@ -3,6 +3,7 @@ import type { Expense, PaymentSource } from '../../types/models';
 import { ExpenseCategory } from '../../types/models';
 import type { ExpenseFilters } from '../../hooks/useExpenses';
 import type { OrgMember } from '../../types/models';
+import { PAYMENT_SOURCE_LABELS } from '../../lib/paymentSources';
 
 interface Props {
   expenses: Expense[];
@@ -18,14 +19,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   [ExpenseCategory.Transport]: 'Transporte',
   [ExpenseCategory.Entertainment]: 'Entretenimiento',
   [ExpenseCategory.Other]: 'Otro',
-};
-
-const PAYMENT_SOURCE_LABELS: Record<PaymentSource, string> = {
-  [PaymentSource.CorporateCredit]: 'Tarjeta de crédito corporativa',
-  [PaymentSource.CorporateDebit]: 'Tarjeta de débito corporativa',
-  [PaymentSource.PersonalCredit]: 'Tarjeta de crédito personal',
-  [PaymentSource.PersonalDebit]: 'Tarjeta de débito personal',
-  [PaymentSource.Cash]: 'Efectivo',
 };
 
 export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, onFiltersChange }: Props) {

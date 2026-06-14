@@ -305,7 +305,7 @@ describe('fetchExpenses', () => {
 
   it('applies paymentSource filter when provided', async () => {
     const { fetchExpenses } = await import('../../hooks/useExpenses');
-    await fetchExpenses('org-1', { paymentSource: 'personal_debit' });
+    await fetchExpenses('org-1', { paymentSource: 'personal_debit' as any });
     expect(mockWhere).toHaveBeenCalledWith('paymentSource', '==', 'personal_debit');
   });
 

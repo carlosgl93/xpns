@@ -1,40 +1,29 @@
 import type { Expense } from '../../types/models';
-import { groupByCurrency, groupByEmployee } from '../../lib/dashboardUtils';
+import { groupByReimbursableByEmployee, groupByCorporateByEmployee } from '../../lib/dashboardUtils';
 
 interface Props {
   expenses: Expense[];
 }
 
 export default function KpiCards({ expenses }: Props) {
-  const byCurrency = groupByCurrency(expenses);
-  const byEmployee = groupByEmployee(expenses);
+  const reimbursable = groupByReimbursableByEmployee(expenses);
+  const corporate = groupByCorporateByEmployee(expenses);
 
   function formatAmount(amount: number, currency: string) {
     return new Intl.NumberFormat('es-CL', { style: 'currency', currency }).format(amount);
   }
 
+  const isEmpty = reimbursable.length === 0 && corporate.length === 0;
+
   return (
     <section aria-label="KPIs">
-      <div>
-        <h2>Total pendiente</h2>
-        {byCurrency.length === 0 ? (
-          <p>Sin gastos pendientes</p>
-        ) : (
-          <ul>
-            {byCurrency.map(({ currency, total }) => (
-              <li key={currency}>{formatAmount(total, currency)}</li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {isEmpty && <p>Sin gastos pendientes</p>}
 
       <div>
-        <h2>Por empleado</h2>
-        {byEmployee.length === 0 ? (
-          <p>Sin gastos pendientes</p>
-        ) : (
+        <h2>A reembolsar</h2>
+        {reimbursable.length === 0 ? null : (
           <ul>
-            {byEmployee.map(({ uid, name, totals }) => (
+            {reimbursable.map(({ uid, name, totals }) => (
               <li key={uid}>
                 <strong>{name}</strong>:{' '}
                 {totals.map(({ currency, total }) => formatAmount(total, currency)).join(' · ')}
@@ -42,6 +31,22 @@ export default function KpiCards({ expenses }: Props) {
             ))}
           </ul>
         )}
+        <p><small>Pagos con tarjeta personal o efectivo — el admin debe reembolsar al empleado.</small></p>
+      </div>
+
+      <div>
+        <h2>Saldo tarjeta corporativa usado</h2>
+        {corporate.length === 0 ? null : (
+          <ul>
+            {corporate.map(({ uid, name, totals }) => (
+              <li key={uid}>
+                <strong>{name}</strong>:{' '}
+                {totals.map(({ currency, total }) => formatAmount(total, currency)).join(' · ')}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p><small>Pagos con tarjeta corporativa — ya pagados por la empresa, no se reembolsan.</small></p>
       </div>
     </section>
   );

@@ -2,10 +2,12 @@ import { describe, it, expect } from 'vitest';
 import {
   groupByCurrency,
   groupByEmployee,
+  groupByReimbursableByEmployee,
+  groupByCorporateByEmployee,
   generateCsv,
 } from '../../lib/dashboardUtils';
-import type { Expense } from '../../types/models';
-import { ExpenseCategory } from '../../types/models';
+import type { Expense, PaymentSource } from '../../types/models';
+import { ExpenseCategory, PaymentSource as PS } from '../../types/models';
 
 function makeExpense(overrides: Partial<Expense> = {}): Expense {
   return {
@@ -15,6 +17,7 @@ function makeExpense(overrides: Partial<Expense> = {}): Expense {
     amount: 1000,
     currency: 'CLP',
     category: ExpenseCategory.Food,
+    paymentSource: PS.CorporateCredit,
     description: 'Almuerzo',
     receiptStoragePath: 'orgs/org-1/receipts/exp-1/r.jpg',
     status: 'pending',
@@ -113,6 +116,67 @@ describe('groupByEmployee', () => {
   });
 });
 
+// ─── groupByReimbursableByEmployee ─────────────────────────────────────────
+
+describe('groupByReimbursableByEmployee', () => {
+  it('returns empty array for no expenses', () => {
+    expect(groupByReimbursableByEmployee([])).toEqual([]);
+  });
+
+  it('groups personal + cash pending expenses, excludes corporate', () => {
+    const expenses = [
+      makeExpense({ id: 'c', submittedBy: 'user-1', submitterName: 'Ana', amount: 5000, paymentSource: PS.CorporateCredit }),
+      makeExpense({ id: 'pc', submittedBy: 'user-1', submitterName: 'Ana', amount: 2000, paymentSource: PS.PersonalCredit }),
+      makeExpense({ id: 'ca', submittedBy: 'user-1', submitterName: 'Ana', amount: 800, paymentSource: PS.Cash }),
+    ];
+    const result = groupByReimbursableByEmployee(expenses);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ uid: 'user-1', name: 'Ana' });
+    // corporate (5000) excluded; personal (2000) + cash (800) = 2800
+    expect(result[0]!.totals).toContainEqual({ currency: 'CLP', total: 2800 });
+  });
+
+  it('excludes paid expenses', () => {
+    const expenses = [
+      makeExpense({ submittedBy: 'user-1', submitterName: 'Ana', amount: 1000, paymentSource: PS.PersonalCredit }),
+      makeExpense({ submittedBy: 'user-1', submitterName: 'Ana', amount: 500, paymentSource: PS.PersonalCredit, status: 'paid' }),
+    ];
+    const result = groupByReimbursableByEmployee(expenses);
+    expect(result[0]!.totals).toContainEqual({ currency: 'CLP', total: 1000 });
+  });
+});
+
+// ─── groupByCorporateByEmployee ──────────────────────────────────────────
+
+describe('groupByCorporateByEmployee', () => {
+  it('returns empty array for no expenses', () => {
+    expect(groupByCorporateByEmployee([])).toEqual([]);
+  });
+
+  it('groups corporate pending expenses, excludes personal and cash', () => {
+    const expenses = [
+      makeExpense({ id: 'cc', submittedBy: 'user-1', submitterName: 'Ana', amount: 5000, paymentSource: PS.CorporateCredit }),
+      makeExpense({ id: 'cd', submittedBy: 'user-1', submitterName: 'Ana', amount: 3000, paymentSource: PS.CorporateDebit }),
+      makeExpense({ id: 'pc', submittedBy: 'user-1', submitterName: 'Ana', amount: 2000, paymentSource: PS.PersonalCredit }),
+      makeExpense({ id: 'ca', submittedBy: 'user-1', submitterName: 'Ana', amount: 800, paymentSource: PS.Cash }),
+    ];
+    const result = groupByCorporateByEmployee(expenses);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({ uid: 'user-1', name: 'Ana' });
+    // corporate_credit (5000) + corporate_debit (3000) = 8000
+    expect(result[0]!.totals).toContainEqual({ currency: 'CLP', total: 8000 });
+  });
+
+  it('excludes paid expenses', () => {
+    const expenses = [
+      makeExpense({ submittedBy: 'user-1', submitterName: 'Ana', amount: 1000, paymentSource: PS.CorporateCredit }),
+      makeExpense({ submittedBy: 'user-1', submitterName: 'Ana', amount: 500, paymentSource: PS.CorporateCredit, status: 'paid' }),
+    ];
+    const result = groupByCorporateByEmployee(expenses);
+    expect(result[0]!.totals).toContainEqual({ currency: 'CLP', total: 1000 });
+  });
+});
+
 // ─── generateCsv ─────────────────────────────────────────────────────────
 
 describe('generateCsv', () => {
@@ -122,6 +186,7 @@ describe('generateCsv', () => {
     expect(lines[0]).toContain('fecha');
     expect(lines[0]).toContain('empleado');
     expect(lines[0]).toContain('categoria');
+    expect(lines[0]).toContain('origen_pago');
     expect(lines[0]).toContain('descripcion');
     expect(lines[0]).toContain('monto');
     expect(lines[0]).toContain('moneda');
@@ -164,5 +229,29 @@ describe('generateCsv', () => {
     const csv = generateCsv([expense]);
     expect(csv).toContain("'=SUM(A1:A10)");
     expect(csv).toContain("'+malicious");
+  });
+
+  it('header column order places origen_pago between categoria and descripcion', () => {
+    const csv = generateCsv([]);
+    const header = csv.split('\n')[0]!;
+    const catIdx = header.split(',').indexOf('categoria');
+    const origenIdx = header.split(',').indexOf('origen_pago');
+    const descIdx = header.split(',').indexOf('descripcion');
+    expect(catIdx).toBeGreaterThanOrEqual(0);
+    expect(origenIdx).toBe(catIdx + 1);
+    expect(descIdx).toBe(origenIdx + 1);
+  });
+
+  it('renders the Spanish label for paymentSource in the row', () => {
+    const expense = makeExpense({ paymentSource: PS.CorporateCredit });
+    const csv = generateCsv([expense]);
+    expect(csv).toContain('Tarjeta de crédito corporativa');
+  });
+
+  it('origen_pago cell survives the formula-injection guard', () => {
+    // Even if a malformed source value reached the row, csvCell should still prefix it
+    const expense = makeExpense({ paymentSource: '=EVIL()' as PaymentSource });
+    const csv = generateCsv([expense]);
+    expect(csv).toContain("'=EVIL()");
   });
 });

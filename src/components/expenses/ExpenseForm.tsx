@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { addExpense } from '../../hooks/useExpenses';
 import { ExpenseCategory, PaymentSource } from '../../types/models';
+import { PAYMENT_SOURCE_LABELS } from '../../lib/paymentSources';
 import type { Timestamp } from 'firebase/firestore';
 
 export interface ExpenseFormFields {
@@ -47,14 +48,6 @@ export function validateExpenseForm(fields: ExpenseFormFields): FormErrors {
 }
 
 const CURRENCIES = ['CLP', 'ARS', 'COP', 'MXN', 'PEN', 'BRL', 'USD', 'EUR'];
-
-const PAYMENT_SOURCE_FORM_LABELS: Record<PaymentSource, string> = {
-  [PaymentSource.CorporateCredit]: 'Tarjeta de crédito corporativa',
-  [PaymentSource.CorporateDebit]: 'Tarjeta de débito corporativa',
-  [PaymentSource.PersonalCredit]: 'Tarjeta de crédito personal',
-  [PaymentSource.PersonalDebit]: 'Tarjeta de débito personal',
-  [PaymentSource.Cash]: 'Efectivo',
-};
 
 const INITIAL: ExpenseFormFields = {
   date: '',
@@ -197,7 +190,7 @@ export default function ExpenseForm() {
         >
           <option value="">Seleccionar...</option>
           {Object.values(PaymentSource).map((value) => (
-            <option key={value} value={value}>{PAYMENT_SOURCE_FORM_LABELS[value]}</option>
+            <option key={value} value={value}>{PAYMENT_SOURCE_LABELS[value]}</option>
           ))}
         </select>
         {errors.paymentSource && <span>{errors.paymentSource}</span>}
