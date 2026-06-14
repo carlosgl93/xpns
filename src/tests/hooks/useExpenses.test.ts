@@ -337,21 +337,25 @@ describe('fetchExpenses', () => {
     expect(mockWhere).toHaveBeenCalledWith('date', '>=', expect.objectContaining({ _date: from }));
   });
 
-  it('applies dateTo filter as where(date <= Timestamp)', async () => {
+  it('applies dateTo filter as where(date <= Timestamp) at end-of-day', async () => {
     const { fetchExpenses } = await import('../../hooks/useExpenses');
     const to = new Date('2024-12-31');
+    const expectedEnd = new Date(to);
+    expectedEnd.setHours(23, 59, 59, 999);
     await fetchExpenses('org-1', { dateTo: to });
-    expect(mockTimestamp.fromDate).toHaveBeenCalledWith(to);
-    expect(mockWhere).toHaveBeenCalledWith('date', '<=', expect.objectContaining({ _date: to }));
+    expect(mockTimestamp.fromDate).toHaveBeenCalledWith(expectedEnd);
+    expect(mockWhere).toHaveBeenCalledWith('date', '<=', expect.objectContaining({ _date: expectedEnd }));
   });
 
   it('applies both dateFrom and dateTo together', async () => {
     const { fetchExpenses } = await import('../../hooks/useExpenses');
     const from = new Date('2024-01-01');
     const to = new Date('2024-12-31');
+    const expectedEnd = new Date(to);
+    expectedEnd.setHours(23, 59, 59, 999);
     await fetchExpenses('org-1', { dateFrom: from, dateTo: to });
     expect(mockWhere).toHaveBeenCalledWith('date', '>=', expect.objectContaining({ _date: from }));
-    expect(mockWhere).toHaveBeenCalledWith('date', '<=', expect.objectContaining({ _date: to }));
+    expect(mockWhere).toHaveBeenCalledWith('date', '<=', expect.objectContaining({ _date: expectedEnd }));
   });
 
   it('does not add date constraints when dateFrom/dateTo are absent', async () => {

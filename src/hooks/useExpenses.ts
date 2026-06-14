@@ -23,7 +23,13 @@ export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Pro
   if (filters.category) constraints.push(where('category', '==', filters.category));
   if (filters.paymentSource) constraints.push(where('paymentSource', '==', filters.paymentSource));
   if (filters.dateFrom) constraints.push(where('date', '>=', Timestamp.fromDate(filters.dateFrom)));
-  if (filters.dateTo) constraints.push(where('date', '<=', Timestamp.fromDate(filters.dateTo)));
+  if (filters.dateTo) {
+    // #16 (review): include the entire day, not just midnight — otherwise picking
+    // 'today' as dateTo would exclude everything from 00:00:01 onward.
+    const end = new Date(filters.dateTo);
+    end.setHours(23, 59, 59, 999);
+    constraints.push(where('date', '<=', Timestamp.fromDate(end)));
+  }
   constraints.push(orderBy('date', 'desc'));
   constraints.push(limit(100));
 
