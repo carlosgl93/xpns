@@ -28,8 +28,21 @@ export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Pro
   constraints.push(limit(100));
 
   const q = query(col, ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as Expense[];
+  try {
+    const snap = await getDocs(q);
+    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as Expense[];
+  } catch (err) {
+    // P2 (review): surface FAILED_PRECONDITION (index building) and UNAVAILABLE distinctly.
+    // First deploy of 4 new composite indexes is at elevated risk of FAILED_PRECONDITION.
+    const code = (err as { code?: string })?.code;
+    if (code === 'failed-precondition') {
+      throw new Error('Index de Firestore en construccion. Intenta de nuevo en unos minutos.');
+    }
+    if (code === 'unavailable') {
+      throw new Error('Servicio no disponible. Intenta de nuevo.');
+    }
+    throw err;
+  }
 }
 
 export async function markAsPaid(orgId: string, expenseId: string): Promise<void> {
