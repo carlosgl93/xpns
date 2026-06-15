@@ -109,8 +109,9 @@ export default function AdminDashboard() {
     try {
       const data = await fetchOrgMembers(orgId!);
       setMembers(data);
-    } catch {
-      // members are non-critical; silent fail
+    } catch (e) {
+      // members are non-critical for the main view; log for observability
+      console.error('loadMembers failed', e);
     }
   }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateExpenseForm, type ExpenseFormFields } from '../../components/expenses/ExpenseForm';
+import { validateExpenseForm, localTodayString, parseLocalDate, type ExpenseFormFields } from '../../components/expenses/ExpenseForm';
 
 function makeValid(): ExpenseFormFields {
   return {
@@ -72,5 +72,35 @@ describe('validateExpenseForm', () => {
     expect(errors.amount).toBeDefined();
     expect(errors.currency).toBeDefined();
     expect(errors.paymentSource).toBeDefined();
+  });
+});
+
+describe('localTodayString', () => {
+  it('returns YYYY-MM-DD shape', () => {
+    expect(localTodayString()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('matches the current local calendar day', () => {
+    const expected = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+    expect(localTodayString()).toBe(expected);
+  });
+});
+
+describe('parseLocalDate', () => {
+  it('returns a Date anchored at local midnight', () => {
+    const d = parseLocalDate('2026-06-14');
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(5); // 0-indexed
+    expect(d.getDate()).toBe(14);
+    expect(d.getHours()).toBe(0);
+    expect(d.getMinutes()).toBe(0);
+  });
+
+  it('round-trips with localTodayString for today', () => {
+    const parsed = parseLocalDate(localTodayString());
+    const now = new Date();
+    expect(parsed.getFullYear()).toBe(now.getFullYear());
+    expect(parsed.getMonth()).toBe(now.getMonth());
+    expect(parsed.getDate()).toBe(now.getDate());
   });
 });

@@ -312,16 +312,28 @@
   cursor: pointer;
   text-align: center;
   padding: 16px;
+  position: relative;
 }
 .expense-form .photo-input:active { background: var(--border); }
 .expense-form .photo-input.has-image { background: var(--ink); color: var(--bg); border-style: solid; border-color: var(--border-strong); }
 .expense-form .photo-input .meta { font-family: var(--font-mono); font-size: 12px; }
+.expense-form .photo-input[aria-invalid="true"] { border-color: var(--error); }
+.expense-form .photo-input .visually-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .expense-form .amount-input { font-family: var(--font-mono); font-variant-numeric: tabular-nums lining-nums; font-size: 24px; font-weight: 500; padding: 14px 16px; border-color: var(--ink); }
 .expense-form .amount-input:focus { outline: none; border-color: var(--accent); border-width: 2px; padding: 13px 15px; }
 .expense-form .submit-bar { position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px calc(12px + var(--safe-bottom)); background: var(--surface); border-top: 1px solid var(--border); z-index: 20; }
+.expense-form .submit-bar + * { margin-top: 0; }
+.expense-form .form-success { padding-top: 16px; }
+.expense-form .form-success-actions { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+.expense-form .amount-row { margin-top: 16px; }
+.mobile-form-header { height: 48px; border-bottom: 1px solid var(--ink); display: flex; align-items: center; padding: 0 12px; justify-content: space-between; background: var(--surface); position: sticky; top: 0; z-index: 10; }
+.mobile-form-header .form-header-title { font-size: 13px; color: var(--ink-muted); }
+.mobile-form-header .logo { font-family: var(--font-display); font-weight: 700; font-size: 14px; font-variation-settings: 'opsz' 144; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 @media (min-width: 1024px) {
   .expense-form { padding: 32px 24px; padding-bottom: 32px; max-width: 640px; margin: 0 auto; }
   .expense-form .submit-bar { position: static; padding: 0; border: none; background: transparent; margin-top: 24px; }
+  .mobile-form-header { display: none; }
 }
 
 /* ===== STATUS / MESSAGES ===== */
