@@ -1,0 +1,117 @@
+/* Design tokens — single source of truth for color, typography, spacing.
+ * Light mode is default. Dark mode toggled via [data-theme="dark"] on <html>.
+ * Mobile-first: no breakpoint queries in this file; those live in components.css.
+ */
+
+:root {
+  /* Surface (paper) */
+  --bg:           #F4F1EA;
+  --surface:      #FFFFFF;
+  --surface-2:    #EBE7DE;
+
+  /* Ink (text) */
+  --ink:          #1A1A1A;
+  --ink-muted:    #6B6B6B;
+  --ink-faint:    #A8A49A;
+  --ink-press:    #000000;
+
+  /* Lines */
+  --border:        #D9D4C7;
+  --border-strong: #1A1A1A;
+
+  /* Accent (sello contable) */
+  --accent:       #C8341D;
+  --accent-soft:  #F5E4DF;
+  --accent-press: #A82914;
+
+  /* Semantic */
+  --success: #2F6B3D;
+  --warning: #B57A1A;
+  --error:   #C8341D;
+  --info:    #2A4A6B;
+
+  /* Layout / interaction */
+  --touch-min:  44px;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Type families */
+  --font-display: 'Fraunces', serif;
+  --font-body:    'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', monospace;
+  --font-code:    'JetBrains Mono', monospace;
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in:  cubic-bezier(0.4, 0, 1, 1);
+}
+
+[data-theme="dark"] {
+  --bg:           #1A1A1A;
+  --surface:      #242424;
+  --surface-2:    #2E2E2E;
+
+  --ink:          #F4F1EA;
+  --ink-muted:    #A8A49A;
+  --ink-faint:    #6B6B6B;
+  --ink-press:    #FFFFFF;
+
+  --border:        #3A3A3A;
+  --border-strong: #F4F1EA;
+
+  --accent:       #E5553E;
+  --accent-soft:  #3A1A14;
+  --accent-press: #B83A26;
+
+  --success: #4A8B5A;
+  --warning: #D08F2E;
+  --error:   #E5553E;
+  --info:    #4A6A8B;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); color: var(--ink); }
+
+body {
+  font-family: var(--font-body);
+  font-size: 16px;          /* 16px min on mobile prevents iOS input zoom */
+  line-height: 1.5;
+  font-feature-settings: "ss01" 1;
+  transition: background 200ms var(--ease-out), color 200ms var(--ease-out);
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
+  touch-action: manipulation;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Type roles — apply via class, not inline. */
+.display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'opsz' 144;
+  font-weight: 600;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01" 1;
+}
+
+.code {
+  font-family: var(--font-code);
+  color: var(--ink-muted);
+  font-size: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
