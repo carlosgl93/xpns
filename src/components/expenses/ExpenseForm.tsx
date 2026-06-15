@@ -22,11 +22,8 @@ import type { Timestamp } from 'firebase/firestore';
 export { validateExpenseForm, localTodayString, parseLocalDate };
 export type { ExpenseFormFields, FormErrors } from '../../lib/expenseForm';
 
-const CURRENCIES = ['CLP', 'ARS', 'COP', 'MXN', 'PEN', 'BRL', 'USD', 'EUR'];
-
 const CATEGORY_OPTIONS = Object.values(ExpenseCategory).map((value) => ({
   value,
-  // Enum key is PascalCase; turn into human label: 'food' → 'Comida' etc.
   label: ({
     food: 'Comida',
     lodging: 'Alojamiento',
@@ -41,18 +38,21 @@ const PAYMENT_SOURCE_OPTIONS = Object.values(PaymentSource).map((value) => ({
   label: PAYMENT_SOURCE_LABELS[value],
 }));
 
-const INITIAL = {
-  date: localTodayString(),
-  amount: 0,
-  currency: '',
-  category: '',
-  paymentSource: '',
-  description: '',
-  photo: null as File | null,
-};
+function makeInitial(defaultCurrency: string) {
+  return {
+    date: localTodayString(),
+    amount: 0,
+    currency: defaultCurrency,
+    category: '',
+    paymentSource: '',
+    description: '',
+    photo: null as File | null,
+  };
+}
 
 export default function ExpenseForm() {
-  const [form, setForm] = useState(INITIAL);
+  const [form, setForm] = useState(() => makeInitial(''));
+  const [defaultCurrency, setDefaultCurrency] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -77,6 +77,9 @@ export default function ExpenseForm() {
         window.location.href = '/login';
         return;
       }
+      const cur = c.defaultCurrency ?? 'CLP';
+      setDefaultCurrency(cur);
+      setForm((f) => ({ ...f, currency: f.currency || cur }));
       setAuthReady(true);
     })();
 
@@ -86,7 +89,10 @@ export default function ExpenseForm() {
     };
   }, []);
 
-  function setField<K extends keyof typeof INITIAL>(field: K, value: (typeof INITIAL)[K]) {
+  function setField<K extends keyof ReturnType<typeof makeInitial>>(
+    field: K,
+    value: ReturnType<typeof makeInitial>[K]
+  ) {
     setForm((f) => ({ ...f, [field]: value }));
     if (errors[field]) {
       setErrors((e) => {
@@ -104,7 +110,7 @@ export default function ExpenseForm() {
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
-    const fieldErrors = validateExpenseForm(form);
+    const fieldErrors = validateExpenseForm(form, defaultCurrency);
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
       // Bring the first invalid field into view (mobile keyboards hide the
@@ -125,7 +131,7 @@ export default function ExpenseForm() {
           submittedBy: '',
           submitterName: '',
           amount: form.amount,
-          currency: form.currency,
+          currency: defaultCurrency,
           category: form.category as ExpenseCategory,
           paymentSource: form.paymentSource as PaymentSource,
           description: form.description,
@@ -136,7 +142,7 @@ export default function ExpenseForm() {
         form.photo!
       );
       if (cancelledRef.current) return;
-      setForm({ ...INITIAL, date: localTodayString() });
+      setForm(makeInitial(defaultCurrency));
       setSuccess(true);
     } catch {
       if (cancelledRef.current) return;
@@ -213,7 +219,7 @@ export default function ExpenseForm() {
         <div className="amount-row">
           <Input
             id="amount"
-            label="Monto"
+            label={`Monto${defaultCurrency ? ` · ${defaultCurrency}` : ''}`}
             type="number"
             min={0.01}
             step="any"

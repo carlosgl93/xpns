@@ -51,7 +51,11 @@ export async function setOrgClaimsLogic(
     });
   });
 
-  await auth.setCustomUserClaims(uid, { orgId, role: 'admin' });
+  await auth.setCustomUserClaims(uid, {
+    orgId,
+    role: 'admin',
+    defaultCurrency: input.defaultCurrency,
+  });
 
   return { orgId };
 }

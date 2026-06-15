@@ -73,6 +73,16 @@ describe('validateExpenseForm', () => {
     expect(errors.currency).toBeDefined();
     expect(errors.paymentSource).toBeDefined();
   });
+
+  it('treats a blank currency as valid when a defaultCurrency is provided (org claim)', () => {
+    const errors = validateExpenseForm({ ...makeValid(), currency: '' }, 'CLP');
+    expect(errors.currency).toBeUndefined();
+  });
+
+  it('still flags missing currency when neither fields.currency nor defaultCurrency is set', () => {
+    const errors = validateExpenseForm({ ...makeValid(), currency: '' });
+    expect(errors.currency).toBeDefined();
+  });
 });
 
 describe('localTodayString', () => {

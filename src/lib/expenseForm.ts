@@ -26,13 +26,23 @@ export function parseLocalDate(date: string): Date {
   return new Date(y!, m! - 1, d!);
 }
 
-export function validateExpenseForm(fields: ExpenseFormFields): FormErrors {
+/**
+ * Validate the form. `defaultCurrency` is the org's locked currency
+ * (read from the user's auth claim). Falls back to undefined to keep the
+ * historical "currency required" error message working for callers that
+ * don't pass a default (e.g. older tests).
+ */
+export function validateExpenseForm(
+  fields: ExpenseFormFields,
+  defaultCurrency?: string
+): FormErrors {
   const errors: FormErrors = {};
+  const currency = fields.currency || defaultCurrency || '';
 
   if (!fields.amount || fields.amount <= 0) {
     errors.amount = 'El monto debe ser mayor a 0';
   }
-  if (!fields.currency) {
+  if (!currency) {
     errors.currency = 'Selecciona una moneda';
   }
   if (!fields.category) {
