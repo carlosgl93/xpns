@@ -248,6 +248,8 @@
 /* ===== DASHBOARD TOOLBAR ===== */
 .dashboard-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
 .dashboard-toolbar .grow { flex: 1; }
+.dashboard-toolbar .filter-employee-wrap { flex: 0 0 280px; margin: 0; }
+.dashboard-toolbar .filter-chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
 @media (min-width: 1024px) { .dashboard-toolbar { padding: 16px 24px; } }
 
 .dashboard-body { padding: 32px 16px 0; max-width: 1200px; margin: 0 auto; }
@@ -265,6 +267,8 @@
 .invite-card .invite-row { display: flex; gap: 8px; }
 .invite-card .invite-row .form-input { flex: 1; min-width: 0; }
 .invite-card .link-display { margin-top: 12px; padding: 12px; background: var(--bg); border: 1px solid var(--border); font-family: var(--font-code); font-size: 12px; color: var(--ink-muted); word-break: break-all; }
+.invite-card .alert { margin-top: 12px; }
+.invite-card .link-row { margin-top: 8px; }
 
 /* ===== FAB ===== */
 .fab {

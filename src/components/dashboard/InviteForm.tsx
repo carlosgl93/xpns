@@ -1,5 +1,9 @@
+// Admin-only invite link generator. Creates a 7-day invite token in Firestore
+// and shows the resulting /join?token=... URL with a copy-to-clipboard button.
+
 import { useState } from 'preact/hooks';
 import { authClaims } from '../../hooks/useAuth';
+import { Button } from '../ui/Button';
 
 export default function InviteForm() {
   const [email, setEmail] = useState('');
@@ -14,8 +18,7 @@ export default function InviteForm() {
       await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('clipboard write failed', err);
+    } catch {
       setError('No se pudo copiar al portapapeles. Cópialo manualmente.');
     }
   }
@@ -56,31 +59,43 @@ export default function InviteForm() {
   }
 
   return (
-    <div>
-      <h3>Invitar empleado</h3>
+    <section className="invite-card" aria-label="Invitar empleado">
+      <h2>Invitar empleado</h2>
       <form onSubmit={handleSubmit}>
-        <input
-          type="email"
-          placeholder="email@empresa.com"
-          value={email}
-          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
-          required
-          disabled={loading}
-        />
-        <button type="submit" disabled={loading}>
-          {loading ? 'Generando…' : 'Generar link'}
-        </button>
+        <div className="invite-row">
+          <input
+            id="invite-email"
+            type="email"
+            className="form-input"
+            placeholder="email@empresa.com"
+            value={email}
+            onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+            required
+            disabled={loading}
+            aria-label="Email del invitado"
+          />
+          <Button type="submit" variant="primary" disabled={loading}>
+            {loading ? 'Generando…' : 'Generar link'}
+          </Button>
+        </div>
       </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {link && (
-        <div>
-          <p>Link de invitación (válido 7 días):</p>
-          <input type="text" readOnly value={link} style={{ width: '100%' }} onClick={(e) => (e.target as HTMLInputElement).select()} />
-          <button type="button" onClick={handleCopy}>
-            {copied ? 'Copiado' : 'Copiar'}
-          </button>
+
+      {error && (
+        <div className="alert alert-error" role="alert">
+          {error}
         </div>
       )}
-    </div>
+
+      {link && (
+        <div>
+          <div className="link-display">{link}</div>
+          <div className="link-row">
+            <Button type="button" variant="secondary" onClick={handleCopy}>
+              {copied ? 'Copiado' : 'Copiar link'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

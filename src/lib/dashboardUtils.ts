@@ -67,6 +67,28 @@ export function groupByCorporateByEmployee(expenses: Expense[]): EmployeeTotal[]
   return groupPendingByEmployee(expenses, 'corporate');
 }
 
+/** Sum of all pending reimbursable expenses across all employees, by currency. */
+export function groupReimbursableTotal(expenses: Expense[]): CurrencyTotal[] {
+  const map = new Map<string, number>();
+  for (const e of expenses) {
+    if (e.status !== 'pending') continue;
+    if (PAYMENT_SOURCE_GROUP[e.paymentSource] !== 'personal') continue;
+    map.set(e.currency, (map.get(e.currency) ?? 0) + e.amount);
+  }
+  return Array.from(map.entries()).map(([currency, total]) => ({ currency, total }));
+}
+
+/** Sum of all pending corporate expenses across all employees, by currency. */
+export function groupCorporateTotal(expenses: Expense[]): CurrencyTotal[] {
+  const map = new Map<string, number>();
+  for (const e of expenses) {
+    if (e.status !== 'pending') continue;
+    if (PAYMENT_SOURCE_GROUP[e.paymentSource] !== 'corporate') continue;
+    map.set(e.currency, (map.get(e.currency) ?? 0) + e.amount);
+  }
+  return Array.from(map.entries()).map(([currency, total]) => ({ currency, total }));
+}
+
 function csvCell(value: string | number): string {
   let str = String(value);
   // Prevent formula injection in Excel/Sheets

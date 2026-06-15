@@ -5,7 +5,7 @@ interface Option {
   label: string;
 }
 
-interface Props extends Omit<JSX.HTMLAttributes<HTMLSelectElement>, 'class' | 'size' | 'children'> {
+interface Props extends Omit<JSX.IntrinsicElements['select'], 'class' | 'size' | 'children'> {
   id: string;
   label: string;
   options: Option[];

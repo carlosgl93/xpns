@@ -1,9 +1,12 @@
 import type { JSX, ComponentChildren } from 'preact';
 
-interface Props extends Omit<JSX.HTMLAttributes<HTMLInputElement>, 'class' | 'size'> {
+type InputType = 'text' | 'email' | 'password' | 'number' | 'date' | 'tel' | 'url' | 'search';
+
+interface Props extends Omit<JSX.IntrinsicElements['input'], 'class' | 'size' | 'type'> {
   id: string;
   label: string;
   error?: string;
+  type?: InputType;
   children?: ComponentChildren;
 }
 

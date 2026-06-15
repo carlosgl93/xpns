@@ -1,17 +1,12 @@
+// Desktop-only expense table. Sticky header, 44px rows, hover = surface-2.
+// Columns: Fecha | Empleado (admin) | Categoría | Descripción | Origen | Monto | Estado | Acciones (admin)
+
 import { useState } from 'preact/hooks';
 import type { Expense, ExpenseStatus, PaymentSource } from '../../types/models';
 import { ExpenseCategory } from '../../types/models';
-import type { ExpenseFilters } from '../../hooks/useExpenses';
-import type { OrgMember } from '../../types/models';
 import { PAYMENT_SOURCE_LABELS } from '../../lib/paymentSources';
-
-interface Props {
-  expenses: Expense[];
-  members: OrgMember[];
-  isAdmin: boolean;
-  onMarkPaid: (expenseId: string) => Promise<void>;
-  onFiltersChange: (filters: ExpenseFilters) => void;
-}
+import { formatCLPDense } from '../../lib/format';
+import { Badge } from '../ui/Badge';
 
 const CATEGORY_LABELS: Record<string, string> = {
   [ExpenseCategory.Food]: 'Comida',
@@ -21,15 +16,32 @@ const CATEGORY_LABELS: Record<string, string> = {
   [ExpenseCategory.Other]: 'Otro',
 };
 
-export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, onFiltersChange }: Props) {
-  const [filters, setFilters] = useState<ExpenseFilters>({});
-  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
+const STATUS_SHORT_LABEL: Record<ExpenseStatus, string> = {
+  pending: 'A reembolsar',
+  paid: 'Pagado',
+};
 
-  function updateFilter<K extends keyof ExpenseFilters>(key: K, value: ExpenseFilters[K]) {
-    const next = { ...filters, [key]: value || undefined };
-    setFilters(next);
-    onFiltersChange(next);
-  }
+function formatDate(ts: any): string {
+  if (!ts?.seconds) return '';
+  const d = new Date(ts.seconds * 1000);
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  return `${dd}/${mm}`;
+}
+
+function statusBadge(status: ExpenseStatus) {
+  if (status === 'paid') return { label: STATUS_SHORT_LABEL.paid, variant: 'success' as const };
+  return { label: STATUS_SHORT_LABEL.pending, variant: 'accent' as const };
+}
+
+interface Props {
+  expenses: Expense[];
+  isAdmin: boolean;
+  onMarkPaid: (expenseId: string) => Promise<void>;
+}
+
+export default function ExpenseTable({ expenses, isAdmin, onMarkPaid }: Props) {
+  const [markingPaid, setMarkingPaid] = useState<string | null>(null);
 
   async function handleMarkPaid(expenseId: string) {
     setMarkingPaid(expenseId);
@@ -40,106 +52,60 @@ export default function ExpenseTable({ expenses, members, isAdmin, onMarkPaid, o
     }
   }
 
-  function formatDate(ts: any): string {
-    if (!ts?.seconds) return '';
-    return new Date(ts.seconds * 1000).toLocaleDateString('es-CL');
+  if (expenses.length === 0) {
+    return (
+      <div className="dashboard-table-wrap">
+        <p className="status-empty">Sin gastos</p>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div aria-label="Filtros">
-        {isAdmin && (
-          <select
-            aria-label="Filtrar por empleado"
-            onChange={(e) => updateFilter('submittedBy', (e.target as HTMLSelectElement).value || undefined)}
-          >
-            <option value="">Todos los empleados</option>
-            {members.map((m) => (
-              <option key={m.id} value={m.id}>{m.displayName}</option>
-            ))}
-          </select>
-        )}
-
-        <select
-          aria-label="Filtrar por categoría"
-          onChange={(e) => updateFilter('category', (e.target as HTMLSelectElement).value || undefined)}
-        >
-          <option value="">Todas las categorías</option>
-          {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-
-        <select
-          aria-label="Filtrar por estado"
-          onChange={(e) =>
-            updateFilter('status', ((e.target as HTMLSelectElement).value || undefined) as ExpenseStatus | undefined)
-          }
-        >
-          <option value="">Todos los estados</option>
-          <option value="pending">Pendiente</option>
-          <option value="paid">Pagado</option>
-        </select>
-
-        <select
-          aria-label="Filtrar por origen de pago"
-          onChange={(e) =>
-            updateFilter('paymentSource', ((e.target as HTMLSelectElement).value || undefined) as PaymentSource | undefined)
-          }
-        >
-          <option value="">Todos los orígenes de pago</option>
-          {Object.entries(PAYMENT_SOURCE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-      </div>
-
-      <table>
+    <div className="dashboard-table-wrap">
+      <table className="dashboard-table">
         <thead>
           <tr>
-            <th>Fecha</th>
+            <th className="mono">Fecha</th>
             {isAdmin && <th>Empleado</th>}
             <th>Categoría</th>
-            <th>Origen de pago</th>
             <th>Descripción</th>
-            <th>Monto</th>
+            <th>Origen</th>
+            <th className="r mono">Monto</th>
             <th>Estado</th>
-            {isAdmin && <th>Acciones</th>}
+            {isAdmin && <th />}
           </tr>
         </thead>
         <tbody>
-          {expenses.length === 0 ? (
-            <tr>
-              <td colSpan={isAdmin ? 8 : 6}>Sin gastos</td>
-            </tr>
-          ) : (
-            expenses.map((e) => (
+          {expenses.map((e) => {
+            const badge = statusBadge(e.status);
+            return (
               <tr key={e.id}>
-                <td>{formatDate(e.date)}</td>
+                <td className="mono">{formatDate(e.date)}</td>
                 {isAdmin && <td>{e.submitterName}</td>}
                 <td>{CATEGORY_LABELS[e.category] ?? e.category}</td>
+                <td className="comercio">{e.description}</td>
                 <td>{PAYMENT_SOURCE_LABELS[e.paymentSource as PaymentSource] ?? e.paymentSource}</td>
-                <td>{e.description}</td>
+                <td className="mono r">{formatCLPDense(e.amount, e.currency)}</td>
                 <td>
-                  {new Intl.NumberFormat('es-CL', { style: 'currency', currency: e.currency }).format(e.amount)}
+                  <Badge variant={badge.variant}>{badge.label}</Badge>
                 </td>
-                <td>{e.status === 'pending' ? 'Pendiente' : 'Pagado'}</td>
                 {isAdmin && (
                   <td>
                     {e.status === 'pending' && (
                       <button
                         type="button"
+                        className="btn btn-ghost"
                         disabled={markingPaid === e.id}
                         onClick={() => handleMarkPaid(e.id!)}
                       >
-                        {markingPaid === e.id ? 'Guardando...' : 'Marcar pagado'}
+                        {markingPaid === e.id ? 'Guardando…' : 'Marcar pagado'}
                       </button>
                     )}
                   </td>
                 )}
               </tr>
-            ))
-          )}
+            );
+          })}
         </tbody>
       </table>
     </div>
