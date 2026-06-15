@@ -1,0 +1,21 @@
+---
+// Product landing hero — used on the / route when the user is not logged in.
+// Mobile-first, max-width 720px container, design-system classes only.
+
+import { Button } from '../ui/Button';
+---
+
+<header class="landing-hero">
+  <div class="container">
+    <div class="logo">xpns</div>
+    <h1 class="display">Capturar un gasto en segundos. Cerrar el día con las cuentas en orden.</h1>
+    <p class="subtitle">
+      Rendición de gastos para empresas en Chile y LATAM. Foto del recibo, monto, listo.
+    </p>
+    <div class="cta-row">
+      <Button href="/register" variant="primary" fullWidth>Empezar</Button>
+      <Button href="/login" variant="ghost" fullWidth>Iniciar sesión</Button>
+    </div>
+    <p class="meta">Rendición simple · aprobaciones rápidas · export a contador</p>
+  </div>
+</header>
