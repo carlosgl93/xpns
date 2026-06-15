@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'preact/hooks';
 import { signUp } from '../../hooks/useAuth';
+import { AuthCard } from '../ui/AuthCard';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 
 export default function JoinForm() {
   const [token, setToken] = useState('');
@@ -60,39 +63,44 @@ export default function JoinForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '0 auto' }}>
-      <h2>Unirse a empresa</h2>
+    <AuthCard
+      title="Unirse a empresa"
+      subtitle="Crea tu cuenta para empezar a registrar gastos."
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        {error && (
+          <div className="alert alert-error" role="alert">
+            {error}
+          </div>
+        )}
 
-      {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-
-      <label>
-        Email
-        <input
+        <Input
+          id="join-email"
+          label="Email"
           type="email"
           value={email}
-          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+          autocomplete="email"
           required
           disabled={loading}
-          autocomplete="email"
+          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
         />
-      </label>
 
-      <label>
-        Contraseña
-        <input
+        <Input
+          id="join-password"
+          label="Contraseña"
           type="password"
           value={password}
-          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          autocomplete="new-password"
           required
           minLength={8}
           disabled={loading}
-          autocomplete="new-password"
+          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
         />
-      </label>
 
-      <button type="submit" disabled={loading}>
-        {loading ? 'Uniéndose…' : 'Unirse'}
-      </button>
-    </form>
+        <Button type="submit" variant="primary" fullWidth disabled={loading}>
+          {loading ? 'Uniéndose…' : 'Unirse'}
+        </Button>
+      </form>
+    </AuthCard>
   );
 }
