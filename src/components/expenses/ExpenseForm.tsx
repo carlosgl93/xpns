@@ -144,7 +144,8 @@ export default function ExpenseForm() {
       if (cancelledRef.current) return;
       setForm(makeInitial(defaultCurrency));
       setSuccess(true);
-    } catch {
+    } catch (err) {
+      console.error('[ExpenseForm] submit failed', err);
       if (cancelledRef.current) return;
       setSubmitError('Error al guardar el gasto. Intenta de nuevo.');
     } finally {
