@@ -23,3 +23,7 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+.gstack/
+
+# deploy artifacts — track the directory but ignore the per-deploy contents
+/docs/deploys/*
