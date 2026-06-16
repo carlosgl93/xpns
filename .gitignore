@@ -27,3 +27,8 @@ pnpm-debug.log*
 
 # deploy artifacts — track the directory but ignore the per-deploy contents
 /docs/deploys/*
+
+# Firebase CLI cache + emulator logs
+.firebase/
+firestore-debug.log
+firebase-debug.log

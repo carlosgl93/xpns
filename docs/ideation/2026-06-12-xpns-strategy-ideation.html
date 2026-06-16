@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ideation: xpns Strategy — 2026-06-12</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface-raised: #1e2333;
+    --border: #2a2f42;
+    --border-subtle: #222638;
+    --text: #e4e6f0;
+    --text-muted: #8891aa;
+    --text-faint: #555d78;
+    --accent: #6b8cff;
+    --accent-soft: rgba(107,140,255,0.10);
+    --accent-text: #8aabff;
+    --green: #3dd68c;
+    --green-soft: rgba(61,214,140,0.10);
+    --green-text: #5ee8a4;
+    --yellow: #f0c040;
+    --yellow-soft: rgba(240,192,64,0.10);
+    --yellow-text: #f5d070;
+    --red: #f06060;
+    --red-soft: rgba(240,96,96,0.10);
+    --red-text: #f08080;
+    --purple: #b57bff;
+    --purple-soft: rgba(181,123,255,0.10);
+    --orange: #ff9950;
+    --orange-soft: rgba(255,153,80,0.10);
+    --teal: #40d0c8;
+    --teal-soft: rgba(64,208,200,0.10);
+    --radius: 8px;
+    --radius-sm: 5px;
+    --font: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.65;
+    padding: 2rem 1rem 4rem;
+  }
+
+  .page {
+    max-width: 900px;
+    margin-inline: auto;
+  }
+
+  /* Header */
+  .doc-header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .doc-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+    margin-bottom: 0.5rem;
+  }
+  .doc-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+  }
+  .doc-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .doc-meta span { white-space: nowrap; }
+  .doc-meta strong { color: var(--text); font-weight: 500; }
+
+  /* Stats strip */
+  .stats-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1.2rem;
+    flex: 1 1 140px;
+  }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.3rem;
+  }
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 0.15rem;
+  }
+
+  /* Section */
+  section { margin-bottom: 2.5rem; }
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    border-bottom: 1px solid var(--border-subtle);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+  h3 { font-size: 1rem; font-weight: 600; color: var(--text); margin-bottom: 0.5rem; }
+  p { max-width: 72ch; color: var(--text-muted); margin-bottom: 0.75rem; }
+  p:last-child { margin-bottom: 0; }
+
+  /* Grounding */
+  .grounding-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0.9rem;
+  }
+  .grounding-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+  }
+  .grounding-card h3 {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.6rem;
+  }
+  .grounding-card ul { list-style: none; padding: 0; }
+  .grounding-card li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 0.2rem 0;
+    padding-left: 1rem;
+    position: relative;
+  }
+  .grounding-card li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--text-faint);
+  }
+
+  /* Axes */
+  .axes-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+  }
+  .axis-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 99px;
+    padding: 0.3rem 0.75rem;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+  .axis-chip .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-sub { background: var(--accent); }
+  .dot-adm { background: var(--green); }
+  .dot-rei { background: var(--yellow); }
+  .dot-org { background: var(--purple); }
+
+  /* Ideas jump-list */
+  .ideas-jumplist {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.75rem;
+  }
+  .ideas-jumplist ol {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    counter-reset: jump;
+  }
+  .ideas-jumplist li { counter-increment: jump; }
+  .ideas-jumplist a {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 13.5px;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .ideas-jumplist a:hover { color: var(--text); }
+  .ideas-jumplist .rank {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-faint);
+    width: 1.2rem;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .ideas-jumplist .chip-small {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.15rem 0.5rem;
+    border-radius: 99px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .chip-conf-h { background: var(--green-soft); color: var(--green-text); }
+  .chip-conf-m { background: var(--yellow-soft); color: var(--yellow-text); }
+  .chip-cx-s { background: var(--accent-soft); color: var(--accent-text); }
+  .chip-cx-m { background: var(--surface-raised); color: var(--text-muted); border: 1px solid var(--border); }
+  .chip-cx-l { background: var(--orange-soft); color: var(--orange); }
+
+  /* Idea cards */
+  article.idea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+    overflow: hidden;
+  }
+  .idea-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1.1rem 1.3rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .idea-rank {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--text-faint);
+    flex-shrink: 0;
+    line-height: 1.3;
+  }
+  .idea-title-block { flex: 1 1 0; }
+  .idea-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+  .idea-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .chip {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 99px;
+    white-space: nowrap;
+  }
+  .chip-axis-sub { background: var(--accent-soft); color: var(--accent-text); }
+  .chip-axis-adm { background: var(--green-soft); color: var(--green-text); }
+  .chip-axis-rei { background: var(--yellow-soft); color: var(--yellow-text); }
+  .chip-axis-org { background: var(--purple-soft); color: var(--purple); }
+  .chip-conf { background: var(--green-soft); color: var(--green-text); }
+  .chip-conf-med { background: var(--yellow-soft); color: var(--yellow-text); }
+  .chip-cx-low { background: var(--accent-soft); color: var(--accent-text); }
+  .chip-cx-med { background: var(--surface-raised); color: var(--text-muted); border: 1px solid var(--border); }
+  .chip-cx-hi { background: var(--orange-soft); color: var(--orange); }
+  .chip-must { background: var(--red-soft); color: var(--red-text); }
+
+  .idea-body { padding: 1.1rem 1.3rem; }
+  .idea-field { margin-bottom: 1rem; }
+  .idea-field:last-child { margin-bottom: 0; }
+  .field-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 0.35rem;
+  }
+  .field-value {
+    font-size: 14px;
+    color: var(--text-muted);
+    max-width: 68ch;
+  }
+  .field-value strong { color: var(--text); }
+  .basis-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 0.15rem 0.45rem;
+    border-radius: var(--radius-sm);
+    margin-right: 0.35rem;
+    background: var(--teal-soft);
+    color: var(--teal);
+  }
+  .basis-tag.ext { background: var(--accent-soft); color: var(--accent-text); }
+  .basis-tag.rsn { background: var(--purple-soft); color: var(--purple); }
+
+  /* SVG diagram wrapper */
+  .diagram-wrap {
+    margin: 1rem 0 0.5rem;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    overflow-x: auto;
+  }
+
+  /* Callout */
+  .callout {
+    background: var(--surface-raised);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 0.75rem 1rem;
+    margin: 0.75rem 0;
+    font-size: 13.5px;
+    color: var(--text-muted);
+  }
+  .callout.warn { border-color: var(--yellow); }
+  .callout.must { border-color: var(--red); background: var(--red-soft); }
+
+  /* Rejection table */
+  .rejection-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .rejection-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .rejection-table td {
+    padding: 0.5rem 0.75rem;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: top;
+  }
+  .rejection-table tr:last-child td { border-bottom: none; }
+  .rejection-table td:first-child { white-space: nowrap; color: var(--text-faint); font-weight: 500; }
+  .rejection-table td:nth-child(2) { font-weight: 500; color: var(--text); }
+
+  /* Footer */
+  footer.composition-signal {
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  @media (max-width: 640px) {
+    .doc-title { font-size: 1.4rem; }
+    .stats-strip { gap: 0.75rem; }
+    .grounding-grid { grid-template-columns: 1fr; }
+    .idea-header { flex-direction: column; gap: 0.5rem; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header class="doc-header">
+    <div class="doc-eyebrow">Ideation · repo-grounded</div>
+    <h1 class="doc-title">Ideation: xpns Strategy</h1>
+    <div class="doc-meta">
+      <span><strong>Date:</strong> <time datetime="2026-06-12">2026-06-12</time></span>
+      <span><strong>Topic:</strong> xpns-strategy</span>
+      <span><strong>Focus:</strong> from STRATEGY.md</span>
+      <span><strong>Mode:</strong> repo-grounded</span>
+    </div>
+  </header>
+
+  <!-- Stats strip -->
+  <div class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-label">Survivors</div>
+      <div class="stat-value">7</div>
+      <div class="stat-sub">of ~48 raw candidates</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Frames Run</div>
+      <div class="stat-value">6</div>
+      <div class="stat-sub">pain · inversion · assumption · leverage · analogy · constraint</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Axes Covered</div>
+      <div class="stat-value">4 / 4</div>
+      <div class="stat-sub">all strategy tracks represented</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Demo In</div>
+      <div class="stat-value">9d</div>
+      <div class="stat-sub">2026-06-21 · #1 is pre-demo gate</div>
+    </div>
+  </div>
+
+  <!-- Grounding Context -->
+  <section id="grounding-context">
+    <h2>Grounding Context</h2>
+    <div class="grounding-grid">
+      <div class="grounding-card">
+        <h3>Codebase</h3>
+        <ul>
+          <li>Astro 6.4 + Preact PWA, Firebase backend, TypeScript</li>
+          <li>Core domain: Org ↔ Members (admin|employee) ↔ Expenses</li>
+          <li>JWT claims carry orgId + role; Cloud Functions for invite/claims</li>
+          <li>6 P1 + 8 P2 open bugs in to-fix.md</li>
+          <li>Demo 2026-06-21 · Launch 2026-06-30</li>
+        </ul>
+      </div>
+      <div class="grounding-card">
+        <h3>Strategy (constraint)</h3>
+        <ul>
+          <li>Target: LATAM SMBs, no finance team, WhatsApp+spreadsheets today</li>
+          <li>Approach: receipt captured at moment of spend via phone photo</li>
+          <li>Buyer: company admin. Employees are invited submitters.</li>
+          <li>Key metrics: org retention · submission rate · approval rate</li>
+          <li>Not doing: OCR/AI validation · per-employee analytics</li>
+        </ul>
+      </div>
+      <div class="grounding-card">
+        <h3>External</h3>
+        <ul>
+          <li>Market gap: no LATAM-local + reimbursement-first + WhatsApp + local rails tool</li>
+          <li>Clara (LATAM) targets mid-market finance teams — no overlap</li>
+          <li>Reme.ai: WhatsApp approvals 73% → 96% completion, 3-5 days → &lt;4h</li>
+          <li>Pix (BR, free+instant) · SPEI (MX) · Nequi (CO) remove payout delay</li>
+          <li>Fogg model: each extra step −20% completion; B2B 25% vs embedded 97%</li>
+          <li>WhatsApp: 90% daily Brazil, 80-90% Mexico / Colombia</li>
+        </ul>
+      </div>
+      <div class="grounding-card">
+        <h3>Open Findings</h3>
+        <ul>
+          <li>P1-A: date filters are UI no-ops (no Firestore where())</li>
+          <li>P1-B: storage rule allows any org member to overwrite receipts</li>
+          <li>P1-C: orphan race on upload-then-addDoc failure</li>
+          <li>P1-E: client-controlled orgId in JWT claims (invite flow)</li>
+          <li>P1-D: auth polling leak in AdminDashboard</li>
+          <li>P1-F: Auth account created before invite validated</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Topic Axes -->
+  <section id="topic-axes">
+    <h2>Topic Axes</h2>
+    <div class="axes-list">
+      <span class="axis-chip"><span class="dot dot-sub"></span>Submission experience — receipt capture, WhatsApp channel, mobile friction</span>
+      <span class="axis-chip"><span class="dot dot-adm"></span>Admin visibility — dashboard trust, filters, KPIs, approval flow</span>
+      <span class="axis-chip"><span class="dot dot-rei"></span>Reimbursement flow — payment rails, local methods, closing the loop</span>
+      <span class="axis-chip"><span class="dot dot-org"></span>Org growth — invite mechanics, billing, plan tiers, retention</span>
+    </div>
+  </section>
+
+  <!-- Ranked Ideas -->
+  <section id="ranked-ideas">
+    <h2>Ranked Ideas</h2>
+
+    <!-- Jump-list -->
+    <nav class="ideas-jumplist" aria-label="idea index">
+      <ol>
+        <li><a href="#idea-1"><span class="rank">1.</span> Trust Trifecta: P1 Pre-Launch Bundle <span class="chip-small chip-conf-h">95% conf</span><span class="chip-small chip-cx-s">Cx Low</span></a></li>
+        <li><a href="#idea-2"><span class="rank">2.</span> WhatsApp-First Full Lifecycle <span class="chip-small chip-conf-h">90% conf</span><span class="chip-small chip-cx-m">Cx Medium</span></a></li>
+        <li><a href="#idea-3"><span class="rank">3.</span> Submission Health Score + Running Balance <span class="chip-small chip-conf-h">88% conf</span><span class="chip-small chip-cx-s">Cx Low</span></a></li>
+        <li><a href="#idea-4"><span class="rank">4.</span> Threshold Auto-Approve + Admin Triage Board <span class="chip-small chip-conf-h">85% conf</span><span class="chip-small chip-cx-m">Cx Medium</span></a></li>
+        <li><a href="#idea-5"><span class="rank">5.</span> Local Rail Reimbursement Closure <span class="chip-small chip-conf-h">82% conf</span><span class="chip-small chip-cx-l">Cx High</span></a></li>
+        <li><a href="#idea-6"><span class="rank">6.</span> In-Context Spend Nudge <span class="chip-small chip-conf-m">72% conf</span><span class="chip-small chip-cx-s">Cx Low</span></a></li>
+        <li><a href="#idea-7"><span class="rank">7.</span> Bottom-Up PLG: Employee Receipt Triggers Org <span class="chip-small chip-conf-m">68% conf</span><span class="chip-small chip-cx-m">Cx Medium</span></a></li>
+      </ol>
+    </nav>
+
+    <!-- Idea 1 -->
+    <article class="idea" id="idea-1">
+      <div class="idea-header">
+        <div class="idea-rank">1.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">Trust Trifecta: P1 Pre-Launch Bundle</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-sub">Submission experience</span>
+            <span class="chip chip-must">Must-ship · pre-demo gate</span>
+            <span class="chip chip-conf">95% conf</span>
+            <span class="chip chip-cx-low">Cx Low</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            Three open P1 bugs are not independent defects — together they constitute the tamper-evident receipt chain that makes xpns's core claim credible: "receipt captured at moment of expense, immutable, with full audit trail." Fix all three before the demo.
+            <br><br>
+            <strong>P1-B (storage rules):</strong> Add uid segment to receipt path (<code>receipts/{orgId}/{uid}/{expenseId}</code>) and tighten the write rule to <code>request.auth.uid == uid</code>. Currently any org member can overwrite any receipt — which voids the audit trail claim entirely.
+            <br><br>
+            <strong>P1-C (orphan race):</strong> Invert the write order: create the Firestore expense document first (with status: uploading), upload to Storage second, then update the doc with the storage path. If Storage fails, the doc can be cleaned up or retried. No phantom receipts.
+            <br><br>
+            <strong>P1-E (client-controlled orgId):</strong> The invite Cloud Function must mint a signed token with orgId embedded server-side; the join function validates the token signature. orgId must never come from the client payload. Closes the org membership injection attack surface.
+          </div>
+        </div>
+        <div class="diagram-wrap" aria-label="Receipt chain diagram">
+          <svg width="620" height="110" viewBox="0 0 620 110" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">
+            <!-- nodes -->
+            <rect x="10" y="35" width="120" height="40" rx="6" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="70" y="50" text-anchor="middle" font-size="11" fill="#8891aa" font-family="Inter,sans-serif">Capture</text>
+            <text x="70" y="65" text-anchor="middle" font-size="11" fill="#e4e6f0" font-family="Inter,sans-serif" font-weight="600">Employee photo</text>
+
+            <rect x="165" y="35" width="130" height="40" rx="6" fill="#1e2333" stroke="#3dd68c"/>
+            <text x="230" y="50" text-anchor="middle" font-size="11" fill="#5ee8a4" font-family="Inter,sans-serif">P1-B fixed</text>
+            <text x="230" y="65" text-anchor="middle" font-size="11" fill="#e4e6f0" font-family="Inter,sans-serif" font-weight="600">UID-scoped Storage</text>
+
+            <rect x="325" y="35" width="130" height="40" rx="6" fill="#1e2333" stroke="#3dd68c"/>
+            <text x="390" y="50" text-anchor="middle" font-size="11" fill="#5ee8a4" font-family="Inter,sans-serif">P1-C fixed</text>
+            <text x="390" y="65" text-anchor="middle" font-size="11" fill="#e4e6f0" font-family="Inter,sans-serif" font-weight="600">Transactional doc</text>
+
+            <rect x="485" y="35" width="125" height="40" rx="6" fill="#1e2333" stroke="#3dd68c"/>
+            <text x="547" y="50" text-anchor="middle" font-size="11" fill="#5ee8a4" font-family="Inter,sans-serif">P1-E fixed</text>
+            <text x="547" y="65" text-anchor="middle" font-size="11" fill="#e4e6f0" font-family="Inter,sans-serif" font-weight="600">Server-side orgId</text>
+
+            <!-- arrows -->
+            <line x1="130" y1="55" x2="162" y2="55" stroke="#2a2f42" stroke-width="1.5" marker-end="url(#arr1)"/>
+            <line x1="295" y1="55" x2="322" y2="55" stroke="#2a2f42" stroke-width="1.5" marker-end="url(#arr1)"/>
+            <line x1="455" y1="55" x2="482" y2="55" stroke="#2a2f42" stroke-width="1.5" marker-end="url(#arr1)"/>
+
+            <!-- label below -->
+            <text x="310" y="100" text-anchor="middle" font-size="12" fill="#555d78" font-family="Inter,sans-serif">All three required for "receipt at moment of expense" to be a credible product claim</text>
+
+            <defs>
+              <marker id="arr1" markerWidth="8" markerHeight="8" refX="4" refY="2" orient="auto">
+                <path d="M0,0 L0,4 L6,2 z" fill="#555d78"/>
+              </marker>
+            </defs>
+          </svg>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag">direct</span>P1-B, P1-C, P1-E explicitly documented in <code>to-fix.md</code> (code review 2026-06-11). Each has a one-day fix. Together they constitute the product's trust foundation.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">xpns sells on "receipt at moment of expense, tamper-evident." None of that claim holds while P1-B (peer can overwrite receipts), P1-C (orphan phantom records), and P1-E (org injection via client payload) are open. These are not cosmetic bugs — they are the attack surface on the product's core proposition. Showing the dashboard to a demo prospect while any of these are open is a liability.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">Fixing P1-E requires a Cloud Function rewrite of the invite flow — medium scope for a 9-day window. P1-B requires a storage path migration if any receipts already exist in prod. P1-C requires changing the write order in the submission flow (test coverage needed).</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Idea 2 -->
+    <article class="idea" id="idea-2">
+      <div class="idea-header">
+        <div class="idea-rank">2.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">WhatsApp-First Full Lifecycle</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-sub">Submission experience</span>
+            <span class="chip chip-axis-adm">Admin visibility</span>
+            <span class="chip chip-axis-rei">Reimbursement flow</span>
+            <span class="chip chip-conf">90% conf</span>
+            <span class="chip chip-cx-med">Cx Medium</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            The entire xpns loop lives in WhatsApp. The PWA becomes the power-user escape hatch, not the primary surface. Four touchpoints, all in WhatsApp:
+            <br><br>
+            <strong>Submit:</strong> Employee sends photo + caption ("taxi R$45 client meeting") to a dedicated WhatsApp Business number. A Cloud Function webhook parses it, creates the expense doc, attaches the image, and replies with a confirmation: "Got it. R$45 · transport · pending review."
+            <br><br>
+            <strong>Approve:</strong> Admin receives a WhatsApp message: amount, category, employee name, receipt thumbnail link. Reply "ok" approves; reply "no [reason]" rejects with a note back to the employee. Dashboard reflects it instantly.
+            <br><br>
+            <strong>Pay:</strong> After approval, admin initiates reimbursement via the employee's pre-registered Pix/SPEI/Nequi handle (see idea #5). xpns sends a payment confirmation to both parties.
+            <br><br>
+            <strong>Status push:</strong> Employee receives a WhatsApp notification at each status transition: Submitted → Approved → Paid. No need to open the app to check status.
+          </div>
+        </div>
+        <div class="diagram-wrap" aria-label="WhatsApp full lifecycle flow">
+          <svg width="580" height="160" viewBox="0 0 580 160" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">
+            <defs>
+              <marker id="arr2" markerWidth="8" markerHeight="8" refX="5" refY="2" orient="auto">
+                <path d="M0,0 L0,4 L7,2 z" fill="#555d78"/>
+              </marker>
+            </defs>
+            <!-- Employee row -->
+            <text x="10" y="35" font-size="11" fill="#8891aa" font-family="Inter,sans-serif" font-weight="600">Employee</text>
+            <rect x="10" y="45" width="90" height="32" rx="5" fill="#25d366" fill-opacity="0.12" stroke="#25d366" stroke-opacity="0.35"/>
+            <text x="55" y="65" text-anchor="middle" font-size="11" fill="#5ee8a4" font-family="Inter,sans-serif" font-weight="600">Send photo</text>
+
+            <rect x="245" y="45" width="90" height="32" rx="5" fill="#25d366" fill-opacity="0.12" stroke="#25d366" stroke-opacity="0.35"/>
+            <text x="290" y="65" text-anchor="middle" font-size="11" fill="#5ee8a4" font-family="Inter,sans-serif" font-weight="600">Gets status</text>
+
+            <rect x="480" y="45" width="90" height="32" rx="5" fill="#25d366" fill-opacity="0.12" stroke="#25d366" stroke-opacity="0.35"/>
+            <text x="525" y="65" text-anchor="middle" font-size="11" fill="#5ee8a4" font-family="Inter,sans-serif" font-weight="600">Paid ✓</text>
+
+            <!-- Cloud Function middle -->
+            <rect x="120" y="60" width="110" height="32" rx="5" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="175" y="75" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Cloud Function</text>
+            <text x="175" y="88" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">webhook</text>
+
+            <!-- Admin row -->
+            <text x="10" y="125" font-size="11" fill="#8891aa" font-family="Inter,sans-serif" font-weight="600">Admin</text>
+            <rect x="245" y="115" width="100" height="32" rx="5" fill="#6b8cff" fill-opacity="0.12" stroke="#6b8cff" stroke-opacity="0.4"/>
+            <text x="295" y="135" text-anchor="middle" font-size="11" fill="#8aabff" font-family="Inter,sans-serif" font-weight="600">Reply "ok"</text>
+
+            <rect x="380" y="115" width="90" height="32" rx="5" fill="#6b8cff" fill-opacity="0.12" stroke="#6b8cff" stroke-opacity="0.4"/>
+            <text x="425" y="135" text-anchor="middle" font-size="11" fill="#8aabff" font-family="Inter,sans-serif" font-weight="600">Pays via Pix</text>
+
+            <!-- Arrows -->
+            <line x1="100" y1="61" x2="118" y2="72" stroke="#555d78" stroke-width="1.2" marker-end="url(#arr2)"/>
+            <line x1="230" y1="75" x2="243" y2="65" stroke="#555d78" stroke-width="1.2" marker-end="url(#arr2)"/>
+            <line x1="230" y1="80" x2="243" y2="125" stroke="#555d78" stroke-width="1.2" marker-end="url(#arr2)"/>
+            <line x1="345" y1="128" x2="378" y2="128" stroke="#555d78" stroke-width="1.2" marker-end="url(#arr2)"/>
+            <line x1="470" y1="128" x2="510" y2="72" stroke="#555d78" stroke-width="1.2" marker-end="url(#arr2)"/>
+          </svg>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag ext">external</span>Reme.ai: WhatsApp approval integration raised completion rate from 73% to 96% and cut time from 3-5 days to under 4 hours. EnKash/ZYNO Expenz (India, structurally identical market) ships WhatsApp-first expense submission. Fogg Behavior Model: each extra step −20% completion; removing "open app" from both employee and admin paths is the highest-leverage single change. WhatsApp penetration: 90% daily in Brazil.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">The status quo is WhatsApp + spreadsheets. xpns is the structured layer on top of the same channel employees and admins already live in. Any design that requires either party to leave WhatsApp creates a behavior-change friction that kills adoption before habits form (Fogg: 18-254 days). The WhatsApp Business API is the channel; the PWA holds reports, exports, and settings. This is the single change most likely to move both submission rate and approval rate — the two key metrics in STRATEGY.md — simultaneously.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">WhatsApp Business API requires a verified business account and per-message pricing (Meta's template costs, ~$0.005-0.02 per message depending on country). Cloud Function webhook integration needed. Free-tier conversation window (24h reply window for user-initiated) needs to be managed carefully for async approval flows. Not available in demo without the API setup.</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Idea 3 -->
+    <article class="idea" id="idea-3">
+      <div class="idea-header">
+        <div class="idea-rank">3.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">Submission Health Score + Running Balance</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-adm">Admin visibility</span>
+            <span class="chip chip-conf">88% conf</span>
+            <span class="chip chip-cx-low">Cx Low</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            Two dashboard-first changes that together replace the admin's spreadsheet as the operating view — and directly track STRATEGY.md's key metrics.
+            <br><br>
+            <strong>Submission Health Score:</strong> One prominent KPI at the top of the admin dashboard: <code>(expenses with receipt attached / total expenses logged) × (approved first-pass / submitted this period)</code>. Green/yellow/red thresholds. No ML, no new data — pure Firestore aggregate math on the data that already exists. Admin logs in on Monday and sees in one glance whether the team's receipt habits are healthy.
+            <br><br>
+            <strong>Running Balance:</strong> Remove the concept of a periodic "expense report." Instead, the dashboard shows a live per-employee owed balance. Admin sees "Carlos: R$340 owed, 3 approved." Expense closes when marked paid. No month-end compile step — the balance is always current.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag">direct</span>STRATEGY.md defines submission rate and approval rate as the two key product metrics. Making those metrics visible in the product creates the behavioral feedback loop that improves them. The date filter (P1-A) must be fixed as a prerequisite — composite Firestore index + where() wiring — before any aggregate is credible.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">Admins who can see their own health score log in weekly to manage it. Weekly login frequency is the strongest predictor of 90-day org retention. The score also becomes a demo proof point and, later, a benchmark between orgs. The running balance removes the "report" concept entirely — the report is a periodic-batch artifact from the spreadsheet world. If data is in Firestore in real time, there is no report; there is a current state.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">P1-A (date filter no-op) must ship first — the health score is meaningless if the underlying aggregate cannot be computed correctly. Requires composite Firestore index creation on (orgId, status, createdAt). Score definition needs team agreement on what "healthy" thresholds mean for a new org vs. a 6-month-old one.</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Idea 4 -->
+    <article class="idea" id="idea-4">
+      <div class="idea-header">
+        <div class="idea-rank">4.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">Threshold Auto-Approve + Admin Triage Board</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-adm">Admin visibility</span>
+            <span class="chip chip-conf">85% conf</span>
+            <span class="chip chip-cx-med">Cx Medium</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            Invert the approval default: admin <em>opts in</em> to review, not out of it. Per-org configurable threshold (e.g. R$150 / MXN 500). Expenses below it auto-approve after 24 hours unless the admin explicitly rejects. Admin is only pulled in for anomalies.
+            <br><br>
+            The admin dashboard becomes a <strong>triage board</strong> — three queues:
+            <ul style="margin:0.5rem 0 0 1.2rem;color:var(--text-muted);font-size:14px;">
+              <li style="margin-bottom:0.25rem;"><strong style="color:var(--green-text)">Green</strong> — below threshold, receipt attached, auto-approving in Nh. No action required.</li>
+              <li style="margin-bottom:0.25rem;"><strong style="color:var(--yellow-text)">Yellow</strong> — above threshold or flagged category. Needs review.</li>
+              <li><strong style="color:var(--red-text)">Red</strong> — missing receipt, over-limit, or rejected. Action required.</li>
+            </ul>
+            <br>
+            Structural analog: the pharmacist refill authorization model — routine refills under a defined limit dispense automatically with a physician veto window. Only exceptions require active approval.
+          </div>
+        </div>
+        <div class="diagram-wrap" aria-label="Triage board classification">
+          <svg width="500" height="100" viewBox="0 0 500 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">
+            <rect x="10" y="20" width="145" height="60" rx="6" fill="rgba(61,214,140,0.08)" stroke="rgba(61,214,140,0.3)"/>
+            <text x="82" y="43" text-anchor="middle" font-size="11" fill="#3dd68c" font-family="Inter,sans-serif" font-weight="700">GREEN</text>
+            <text x="82" y="58" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Below threshold</text>
+            <text x="82" y="72" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">+ receipt ✓ → auto-approve</text>
+
+            <rect x="177" y="20" width="145" height="60" rx="6" fill="rgba(240,192,64,0.08)" stroke="rgba(240,192,64,0.3)"/>
+            <text x="249" y="43" text-anchor="middle" font-size="11" fill="#f0c040" font-family="Inter,sans-serif" font-weight="700">YELLOW</text>
+            <text x="249" y="58" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Above threshold</text>
+            <text x="249" y="72" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">or flagged → needs review</text>
+
+            <rect x="344" y="20" width="146" height="60" rx="6" fill="rgba(240,96,96,0.08)" stroke="rgba(240,96,96,0.3)"/>
+            <text x="417" y="43" text-anchor="middle" font-size="11" fill="#f06060" font-family="Inter,sans-serif" font-weight="700">RED</text>
+            <text x="417" y="58" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">No receipt / rejected</text>
+            <text x="417" y="72" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">action required</text>
+          </svg>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag rsn">reasoned</span>B2B tools: 25% avg adoption vs 97% for embedded-workflow tools. Admin at a LATAM SMB with no finance team is already managing operations, sales, and logistics — adding "review every expense" as a daily task is the adoption killer. Reducing required admin actions to exceptions preserves control while removing friction.
+            <span class="basis-tag ext" style="margin-left:0.5rem">external</span>Pharmacist refill authorization model (managed care): routine cases dispense automatically; physician veto window preserves oversight. Direct structural parallel.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">Approval rate (% approved first review without back-and-forth) is a key metric. Auto-approve makes routine approval invisible — it happens without admin action. Admin trust is maintained by the veto window and the triage board's transparent exception queue. Reducing admin load is the primary lever on org retention at 30/90 days.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">Trust barrier: admins may not trust auto-approval until they've used the product long enough to calibrate the threshold. Needs clear UI indication of what's auto-approving and when. Potential abuse if employees learn the threshold (split one large expense into two small ones). Fraud surface is real at scale but minimal for 5-50 person orgs.</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Idea 5 -->
+    <article class="idea" id="idea-5">
+      <div class="idea-header">
+        <div class="idea-rank">5.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">Local Rail Reimbursement Closure</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-rei">Reimbursement flow</span>
+            <span class="chip chip-conf">82% conf</span>
+            <span class="chip chip-cx-hi">Cx High</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            Close the reimbursement loop inside xpns using the dominant free instant payment rail of each LATAM country. Admin pre-registers each employee's payment handle once. After approval, admin taps "pay" and xpns initiates the transfer (or deep-links into their banking app pre-filled). Employee receives a WhatsApp confirmation when paid. Expense closes.
+            <br><br>
+            Country rail targets: <strong>Brazil → Pix</strong> (CPF or phone key, free, instant, 63B transactions in 2025). <strong>Mexico → SPEI</strong> (CLABE account number, near-instant). <strong>Colombia → Nequi</strong> (phone number, instant). <strong>Chile → WebPay / CuentaRUT</strong>.
+          </div>
+        </div>
+        <div class="diagram-wrap" aria-label="Country payment rails">
+          <svg width="520" height="80" viewBox="0 0 520 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">
+            <rect x="10" y="15" width="110" height="50" rx="6" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="65" y="36" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Brazil 🇧🇷</text>
+            <text x="65" y="52" text-anchor="middle" font-size="12" fill="#3dd68c" font-family="Inter,sans-serif" font-weight="700">Pix</text>
+            <text x="65" y="65" text-anchor="middle" font-size="9" fill="#555d78" font-family="Inter,sans-serif">free · instant</text>
+
+            <rect x="140" y="15" width="110" height="50" rx="6" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="195" y="36" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Mexico 🇲🇽</text>
+            <text x="195" y="52" text-anchor="middle" font-size="12" fill="#6b8cff" font-family="Inter,sans-serif" font-weight="700">SPEI</text>
+            <text x="195" y="65" text-anchor="middle" font-size="9" fill="#555d78" font-family="Inter,sans-serif">near-instant</text>
+
+            <rect x="270" y="15" width="110" height="50" rx="6" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="325" y="36" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Colombia 🇨🇴</text>
+            <text x="325" y="52" text-anchor="middle" font-size="12" fill="#ff9950" font-family="Inter,sans-serif" font-weight="700">Nequi</text>
+            <text x="325" y="65" text-anchor="middle" font-size="9" fill="#555d78" font-family="Inter,sans-serif">phone key</text>
+
+            <rect x="400" y="15" width="110" height="50" rx="6" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="455" y="36" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Chile 🇨🇱</text>
+            <text x="455" y="52" text-anchor="middle" font-size="12" fill="#b57bff" font-family="Inter,sans-serif" font-weight="700">WebPay</text>
+            <text x="455" y="65" text-anchor="middle" font-size="9" fill="#555d78" font-family="Inter,sans-serif">CuentaRUT</text>
+          </svg>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag ext">external</span>Market gap confirmed by web research: no tool combines LATAM-local + reimbursement-first + WhatsApp + local payment rails. Pix recorded 63 billion transactions in 2025 (free, instant); projected to overtake credit cards by 2027. Reme.ai data: cutting reimbursement cycle from days to hours is the #1 stated differentiator. Behavioral research: employees who get reimbursed fast submit more — the payment closes the habit loop.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">"Will I get my money back?" is the emotional core of expense submission. Slow reimbursement is the primary reason employees stop submitting (why bother if it takes two weeks and requires chasing?). Pix removes the friction entirely: approval-to-paid in under 10 minutes. This is the move that makes xpns genuinely better than the spreadsheet — not just more organized, but faster money in pocket.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">High complexity: requires per-country API integrations or a payments middleware (Belvo, Fintoc, Kushki). Regulatory compliance differs by country (KYC requirements for initiating bank transfers). Not MVP-feasible for 2026-06-30 launch without a partnership or existing payment provider. Start with Brazil/Pix as the lowest-friction path; deep-link approach (pre-filled bank transfer in native banking app) is lower-risk than direct API initiation.</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Idea 6 -->
+    <article class="idea" id="idea-6">
+      <div class="idea-header">
+        <div class="idea-rank">6.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">In-Context Spend Nudge</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-sub">Submission experience</span>
+            <span class="chip chip-conf-med">72% conf</span>
+            <span class="chip chip-cx-low">Cx Low</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            When an employee mentions a spend in WhatsApp — keyword pattern ("compré", "pagué", "restaurant", "taxi", "gas", or an amount pattern "R$", "MXN", "$") — xpns sends a 1-tap "snap it now" prompt within seconds. Receipt captured in context, not reconstructed from memory days later. Also available as a manual trigger: employee texts the xpns bot channel with an amount and immediately gets the photo request.
+            <br><br>
+            Structural analog: field logistics dead-drop checkpoints — long-haul trucking requires GPS waypoint pings at fixed intervals because the compliance window closes fast. The mechanic transfers: prompt at the moment of the event, not at end-of-day batch.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag ext">external</span>Field logistics checkpoint pattern (DHL convoy tracking): low-tech workers + compliance requirement + moment-of-action capture window. Structural parallel: expense submission abandonment happens because the physical receipt is no longer accessible hours or days later, not because the employee is unwilling to submit.
+            <span class="basis-tag rsn" style="margin-left:0.5rem">reasoned</span>Fogg Behavior Model: motivation is highest immediately post-purchase (the event just happened, the receipt is in hand). Each hour that passes drops both motivation and ability (receipt lost, amount forgotten).
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">Submission rate is a key metric. The hardest submission problem is not friction in the app — it's that employees delay until end-of-week and then can't reconstruct the receipts. An in-context nudge converts the spend moment into the submission moment. Depends on WhatsApp Business API (see idea #2) — this is a feature of the WhatsApp channel, not the PWA.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">Keyword detection in Spanish/Portuguese is noisy — many messages containing "taxi" are not expense events. False positives annoy employees and kill trust in the bot. Conservative approach: only trigger on opt-in keyword pattern from the employee's own messages in the org group, or on explicit employee-initiated messages to the xpns bot number. Depends on WhatsApp Business API being in place (idea #2 prerequisite).</div>
+        </div>
+      </div>
+    </article>
+
+    <!-- Idea 7 -->
+    <article class="idea" id="idea-7">
+      <div class="idea-header">
+        <div class="idea-rank">7.</div>
+        <div class="idea-title-block">
+          <div class="idea-title">Bottom-Up PLG: Employee Receipt Triggers Org</div>
+          <div class="idea-chips">
+            <span class="chip chip-axis-org">Org growth</span>
+            <span class="chip chip-conf-med">68% conf</span>
+            <span class="chip chip-cx-med">Cx Medium</span>
+          </div>
+        </div>
+      </div>
+      <div class="idea-body">
+        <div class="idea-field">
+          <div class="field-label">Description</div>
+          <div class="field-value">
+            Invert the acquisition funnel: org creation is triggered by employee action, not admin setup. Two entry points:
+            <br><br>
+            <strong>Employee receipt as org seed:</strong> Employee submits a receipt (WhatsApp or web). System detects no linked org. Creates a draft org and sends the admin an activation link: "Carlos from [company] just submitted a R$45 expense and is waiting for your approval. Click to claim your org and reimburse him." Admin's first interaction is already valuable — there's money on the table, not a signup form.
+            <br><br>
+            <strong>Invite link as viral unit:</strong> When admin invites a team member, the invite lands on a co-branded page ("Maria from Acme is using xpns — join to get reimbursed faster"). Employees who join under one org become a referral seed: if they later start their own company, account is pre-created. Org creation pre-fills from their profile.
+          </div>
+        </div>
+        <div class="diagram-wrap" aria-label="Bottom-up PLG funnel">
+          <svg width="540" height="90" viewBox="0 0 540 90" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;max-width:100%">
+            <defs>
+              <marker id="arr3" markerWidth="7" markerHeight="7" refX="4" refY="2" orient="auto">
+                <path d="M0,0 L0,4 L6,2 z" fill="#555d78"/>
+              </marker>
+            </defs>
+            <!-- Traditional (top) -->
+            <text x="10" y="18" font-size="10" fill="#555d78" font-family="Inter,sans-serif">Traditional</text>
+            <rect x="10" y="22" width="80" height="28" rx="4" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="50" y="40" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Admin signs up</text>
+            <line x1="90" y1="36" x2="108" y2="36" stroke="#555d78" stroke-width="1" marker-end="url(#arr3)"/>
+            <rect x="110" y="22" width="80" height="28" rx="4" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="150" y="40" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Invites team</text>
+            <line x1="190" y1="36" x2="208" y2="36" stroke="#555d78" stroke-width="1" marker-end="url(#arr3)"/>
+            <rect x="210" y="22" width="80" height="28" rx="4" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="250" y="40" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">Employees join</text>
+            <line x1="290" y1="36" x2="308" y2="36" stroke="#555d78" stroke-width="1" marker-end="url(#arr3)"/>
+            <rect x="310" y="22" width="90" height="28" rx="4" fill="#1e2333" stroke="#2a2f42"/>
+            <text x="355" y="40" text-anchor="middle" font-size="10" fill="#8891aa" font-family="Inter,sans-serif">First submission</text>
+
+            <!-- PLG (bottom) -->
+            <text x="10" y="72" font-size="10" fill="#b57bff" font-family="Inter,sans-serif" font-weight="600">xpns PLG</text>
+            <rect x="80" y="60" width="100" height="28" rx="4" fill="rgba(181,123,255,0.1)" stroke="rgba(181,123,255,0.35)"/>
+            <text x="130" y="78" text-anchor="middle" font-size="10" fill="#b57bff" font-family="Inter,sans-serif">Employee submits</text>
+            <line x1="180" y1="74" x2="198" y2="74" stroke="#b57bff" stroke-opacity="0.5" stroke-width="1" marker-end="url(#arr3)"/>
+            <rect x="200" y="60" width="110" height="28" rx="4" fill="rgba(181,123,255,0.1)" stroke="rgba(181,123,255,0.35)"/>
+            <text x="255" y="78" text-anchor="middle" font-size="10" fill="#b57bff" font-family="Inter,sans-serif">Draft org created</text>
+            <line x1="310" y1="74" x2="328" y2="74" stroke="#b57bff" stroke-opacity="0.5" stroke-width="1" marker-end="url(#arr3)"/>
+            <rect x="330" y="60" width="110" height="28" rx="4" fill="rgba(181,123,255,0.1)" stroke="rgba(181,123,255,0.35)"/>
+            <text x="385" y="71" text-anchor="middle" font-size="10" fill="#b57bff" font-family="Inter,sans-serif">Admin activation</text>
+            <text x="385" y="84" text-anchor="middle" font-size="10" fill="#b57bff" font-family="Inter,sans-serif">"money waiting"</text>
+          </svg>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Basis</div>
+          <div class="field-value">
+            <span class="basis-tag rsn">reasoned</span>PLG mechanics: removing the "admin configures first" gate collapses the setup funnel entirely. Admin's first interaction is already valuable (pending reimbursement), not a signup form. Converts the pain point directly into a signup trigger.
+            <span class="basis-tag ext" style="margin-left:0.5rem">external</span>Loom's viral loop: each video sent creates a passive referral (recipient must create account to reply). Structural parallel: each expense submitted creates an admin activation trigger.
+          </div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Rationale</div>
+          <div class="field-value">Org growth at 90/365 days depends on acquiring paying orgs. With no sales team at launch, every acquisition mechanism matters. Bottom-up PLG turns employees into passive salespeople — they submit, which means admins get notified, which means admins activate. This is the structural move that makes each employee invite a potential org acquisition rather than just a user onboard.</div>
+        </div>
+        <div class="idea-field">
+          <div class="field-label">Downsides</div>
+          <div class="field-value">Employee may submit to a wrong or non-existent org. Draft org creation could be spammy if not guarded (e.g., employee must confirm the company name/admin email before the activation link fires). The viral unit (invite page) requires design and copy investment to convert — a generic invite URL does not carry the right emotional hook.</div>
+        </div>
+      </div>
+    </article>
+
+  </section>
+
+  <!-- Rejection Summary -->
+  <section id="rejection-summary">
+    <h2>Rejection Summary</h2>
+    <table class="rejection-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Idea</th>
+          <th>Reason Rejected</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>R01</td><td>Pre-Authorization Spending Envelope</td><td>Scope overrun for MVP; adds pre-approval workflow complexity; no direct signal that LATAM SMB admins operate in advance-approval mode</td></tr>
+        <tr><td>R02</td><td>Admin Role as Rotating Context</td><td>Adds permission model complexity; P1-E (fragile invite/auth) must be resolved before layering role-switching; scope overrun</td></tr>
+        <tr><td>R03</td><td>Float Model Billing</td><td>Regulatory complexity (payment float requires licenses in most LATAM countries); out of MVP scope; not validated as customer preference</td></tr>
+        <tr><td>R04</td><td>Pay-Before-Admin-Reviews</td><td>Inverts core trust model without fraud detection infrastructure; scope overrun; potential for immediate abuse at launch</td></tr>
+        <tr><td>R05</td><td>Reimbursement as Payroll Line</td><td>Requires payroll integration; out of scope for current product phase</td></tr>
+        <tr><td>R06</td><td>Vendor-Sends-Receipt</td><td>Requires vendor-side adoption; too expensive to bootstrap; scope overrun for current phase</td></tr>
+        <tr><td>R07</td><td>Crop Insurance Mental Model</td><td>Framing/copy change only; not an actionable product improvement; insight captured by WhatsApp submission idea</td></tr>
+        <tr><td>R08</td><td>Team Social Visibility on Group Expenses</td><td>Potentially intrusive for micro-orgs; no direct signal; complexity vs. value unclear at MVP scale</td></tr>
+        <tr><td>R09</td><td>Pocket Photo / Offline Capture Queue (standalone)</td><td>Edge-case optimization; offline-capable PWA stack can support it as a brainstorm variant of WhatsApp channel, not a standalone</td></tr>
+        <tr><td>R10</td><td>Running Balance (standalone)</td><td>Captured within Submission Health Score idea; not distinct enough to rank separately</td></tr>
+        <tr><td>R11</td><td>Receipts as Payment Requests (reframe)</td><td>Copy/mental model change; no direct actionable product improvement as a standalone</td></tr>
+        <tr><td>R12</td><td>Chain of Custody standalone</td><td>Captured and strengthened within Trust Trifecta (#1); duplicates stronger idea</td></tr>
+        <tr><td>R13</td><td>Fishing Logbook / Tax Audit Angle</td><td>Interesting marketing angle but not a product improvement per se; captured within Trust Trifecta claim</td></tr>
+        <tr><td>R14</td><td>WhatsApp Group as Org Dashboard</td><td>Too low-fidelity for admin visibility needs; below ambition floor; could be a lightweight onboarding wedge but not a standalone product direction</td></tr>
+        <tr><td>R15</td><td>Loyalty Punch Card / Submission Velocity Indicator</td><td>Too tactical; submission rate better addressed by ideas #2 and #6 with more leverage</td></tr>
+        <tr><td>R16</td><td>Flat-Fee Billing Tied to Team Size</td><td>Valid business model decision but more GTM/pricing strategy than product improvement; better as a ce-brainstorm variant on org growth track</td></tr>
+        <tr><td>R17</td><td>Construction Punch List / Closeout Ritual</td><td>Interesting framing; mechanism captured within idea #5 (Local Rail Closure); duplicates stronger idea</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer class="composition-signal">
+    Composed <time datetime="2026-06-12">2026-06-12</time> by ce-ideate · xpns/STRATEGY.md · run d3f106a8
+  </footer>
+
+</div>
+</body>
+</html>
