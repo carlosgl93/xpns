@@ -4,6 +4,7 @@ import type { User } from 'firebase/auth';
 export interface AuthClaims {
   orgId?: string;
   role?: 'admin' | 'employee';
+  defaultCurrency?: string;
 }
 
 export const authUser = signal<User | null>(null);
@@ -16,6 +17,7 @@ export async function handleAuthChange(user: User | null): Promise<void> {
     authClaims.value = {
       orgId: tokenResult.claims['orgId'] as string | undefined,
       role: tokenResult.claims['role'] as 'admin' | 'employee' | undefined,
+      defaultCurrency: tokenResult.claims['defaultCurrency'] as string | undefined,
     };
     authUser.value = user;
   } else {

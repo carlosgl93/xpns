@@ -99,4 +99,19 @@ describe('storage — receipt upload', () => {
     const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
     await assertFails(getDownloadURL(ref(alice.storage(), 'orgs/org2/receipts/uid-alice/exp1/receipt.jpg')));
   });
+
+  it('member cannot upload 16MB application/pdf (over size + wrong mime)', async () => {
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
+    const storage = alice.storage();
+    const receiptRef = ref(storage, 'orgs/org1/receipts/uid-alice/exp1/receipt.pdf');
+    const big = new Uint8Array(16 * 1024 * 1024);
+    await assertFails(uploadBytes(receiptRef, big, { contentType: 'application/pdf' }));
+  });
+
+  it('member can upload image/png receipt', async () => {
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'org1'));
+    const storage = alice.storage();
+    const receiptRef = ref(storage, 'orgs/org1/receipts/uid-alice/exp1/receipt.png');
+    await assertSucceeds(uploadBytes(receiptRef, FAKE_IMAGE, { contentType: 'image/png' }));
+  });
 });

@@ -76,13 +76,14 @@ describe('setOrgClaimsLogic', () => {
     expect(mockDocFn).toHaveBeenCalledWith(`orgs/org-generated-id/members/uid-1`);
   });
 
-  it('sets custom claims with orgId and role admin', async () => {
+  it('sets custom claims with orgId, role admin, and defaultCurrency', async () => {
     const { setOrgClaimsLogic } = await import('./setOrgClaims');
     await setOrgClaimsLogic('uid-1', 'admin@test.com', { orgName: 'Acme Corp', defaultCurrency: 'CLP' });
 
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith('uid-1', {
       orgId: 'org-generated-id',
       role: 'admin',
+      defaultCurrency: 'CLP',
     });
   });
 

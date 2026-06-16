@@ -1,10 +1,11 @@
-import type { Expense, ExpenseCategory, ExpenseStatus, ExpenseWrite } from '../types/models';
+import type { Expense, ExpenseCategory, ExpenseStatus, ExpenseWrite, PaymentSource } from '../types/models';
 import { authUser, authClaims } from './useAuth';
 
 export interface ExpenseFilters {
   status?: ExpenseStatus;
   submittedBy?: string;
   category?: ExpenseCategory | string;
+  paymentSource?: PaymentSource;
   dateFrom?: Date;
   dateTo?: Date;
 }
@@ -20,14 +21,34 @@ export async function fetchExpenses(orgId: string, filters: ExpenseFilters): Pro
   if (filters.status) constraints.push(where('status', '==', filters.status));
   if (filters.submittedBy) constraints.push(where('submittedBy', '==', filters.submittedBy));
   if (filters.category) constraints.push(where('category', '==', filters.category));
+  if (filters.paymentSource) constraints.push(where('paymentSource', '==', filters.paymentSource));
   if (filters.dateFrom) constraints.push(where('date', '>=', Timestamp.fromDate(filters.dateFrom)));
-  if (filters.dateTo) constraints.push(where('date', '<=', Timestamp.fromDate(filters.dateTo)));
+  if (filters.dateTo) {
+    // #16 (review): include the entire day, not just midnight — otherwise picking
+    // 'today' as dateTo would exclude everything from 00:00:01 onward.
+    const end = new Date(filters.dateTo);
+    end.setHours(23, 59, 59, 999);
+    constraints.push(where('date', '<=', Timestamp.fromDate(end)));
+  }
   constraints.push(orderBy('date', 'desc'));
   constraints.push(limit(100));
 
   const q = query(col, ...constraints);
-  const snap = await getDocs(q);
-  return snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as Expense[];
+  try {
+    const snap = await getDocs(q);
+    return snap.docs.map((d: any) => ({ id: d.id, ...d.data() })) as Expense[];
+  } catch (err) {
+    // P2 (review): surface FAILED_PRECONDITION (index building) and UNAVAILABLE distinctly.
+    // First deploy of 4 new composite indexes is at elevated risk of FAILED_PRECONDITION.
+    const code = (err as { code?: string })?.code;
+    if (code === 'failed-precondition') {
+      throw new Error('Index de Firestore en construccion. Intenta de nuevo en unos minutos.');
+    }
+    if (code === 'unavailable') {
+      throw new Error('Servicio no disponible. Intenta de nuevo.');
+    }
+    throw err;
+  }
 }
 
 export async function markAsPaid(orgId: string, expenseId: string): Promise<void> {
@@ -73,11 +94,28 @@ export async function addExpense(data: ExpenseWrite, photoFile: File): Promise<s
     });
   } catch (uploadErr) {
     // P1-C: upload failed — clean up the expense doc to avoid phantom records
-    await deleteDoc(docRef);
+    try {
+      await deleteDoc(docRef);
+    } catch (cleanupErr) {
+      // P1-C (review): log the secondary error so the original upload error still propagates
+      console.error('addExpense: cleanup deleteDoc failed', cleanupErr);
+    }
     throw uploadErr;
   }
 
-  await updateDoc(docRef, { receiptStoragePath: storagePath });
+  try {
+    await updateDoc(docRef, { receiptStoragePath: storagePath });
+  } catch (updateErr) {
+    // #2 (review): updateDoc failed after upload — roll back the expense doc to
+    // avoid an orphan with an empty receiptStoragePath. Log the secondary error
+    // so the original update error still propagates.
+    try {
+      await deleteDoc(docRef);
+    } catch (cleanupErr) {
+      console.error('addExpense: updateDoc rollback deleteDoc failed', cleanupErr);
+    }
+    throw updateErr;
+  }
 
   return docRef.id;
 }

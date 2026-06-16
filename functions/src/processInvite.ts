@@ -64,7 +64,14 @@ export async function processInviteLogic(
   });
 
   // Claims set after transaction commits — orgId comes from the invite doc.
-  await auth.setCustomUserClaims(uid, { orgId: authorizedOrgId, role: 'employee' });
+  // Read the org's defaultCurrency so the client can pre-fill the expense form.
+  const orgSnap = await db.doc(`orgs/${authorizedOrgId}`).get();
+  const defaultCurrency = (orgSnap.data()?.['defaultCurrency'] as string) ?? 'CLP';
+  await auth.setCustomUserClaims(uid, {
+    orgId: authorizedOrgId,
+    role: 'employee',
+    defaultCurrency,
+  });
 
   // Add employee to org members so they appear in the admin filter.
   const memberRef = db.doc(`orgs/${authorizedOrgId}/members/${uid}`);

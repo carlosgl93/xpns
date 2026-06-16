@@ -1,16 +1,7 @@
 ---
+import AppLayout from '../layouts/AppLayout.astro';
 import JoinForm from '../components/auth/JoinForm';
 ---
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Unirse a empresa — xpns</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
-  </head>
-  <body>
-    <main>
-      <JoinForm client:load />
-    </main>
-  </body>
-</html>
+<AppLayout title="Unirse a empresa" description="Únete a una empresa en xpns usando tu link de invitación.">
+  <JoinForm client:load />
+</AppLayout>

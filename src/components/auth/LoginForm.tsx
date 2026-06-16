@@ -1,5 +1,8 @@
 import { useState } from 'preact/hooks';
 import { signIn } from '../../hooks/useAuth';
+import { AuthCard } from '../ui/AuthCard';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -24,42 +27,43 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '0 auto' }}>
-      <h2>Iniciar sesión</h2>
+    <AuthCard
+      title="Iniciar sesión"
+      footer={<>¿No tienes cuenta? <a href="/register">Registrar empresa</a></>}
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        {error && (
+          <div className="alert alert-error" role="alert">
+            {error}
+          </div>
+        )}
 
-      {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-
-      <label>
-        Email
-        <input
+        <Input
+          id="login-email"
+          label="Email"
           type="email"
           value={email}
-          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
+          autocomplete="email"
           required
           disabled={loading}
-          autocomplete="email"
+          onInput={(e) => setEmail((e.target as HTMLInputElement).value)}
         />
-      </label>
 
-      <label>
-        Contraseña
-        <input
+        <Input
+          id="login-password"
+          label="Contraseña"
           type="password"
           value={password}
-          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
+          autocomplete="current-password"
           required
           disabled={loading}
-          autocomplete="current-password"
+          onInput={(e) => setPassword((e.target as HTMLInputElement).value)}
         />
-      </label>
 
-      <button type="submit" disabled={loading}>
-        {loading ? 'Iniciando sesión…' : 'Iniciar sesión'}
-      </button>
-
-      <p>
-        ¿No tienes cuenta? <a href="/register">Registrar empresa</a>
-      </p>
-    </form>
+        <Button type="submit" variant="primary" fullWidth disabled={loading}>
+          {loading ? 'Iniciando sesión…' : 'Iniciar sesión'}
+        </Button>
+      </form>
+    </AuthCard>
   );
 }

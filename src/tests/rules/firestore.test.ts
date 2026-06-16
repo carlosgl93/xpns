@@ -47,6 +47,7 @@ async function seedExpense(orgId: string, expenseId: string, submittedBy: string
       amount: 1000,
       currency: 'CLP',
       category: 'food',
+      paymentSource: 'corporate_credit',
       description: 'Lunch',
       receiptStoragePath: `orgs/${orgId}/receipts/${expenseId}/receipt.jpg`,
       status: 'pending',
@@ -123,6 +124,7 @@ describe('expenses — create', () => {
       amount: 5000,
       currency: 'CLP',
       category: 'food',
+      paymentSource: 'corporate_credit',
       description: 'Lunch',
       receiptStoragePath: 'orgs/org1/receipts/exp-new/r.jpg',
       status: 'pending',
@@ -139,6 +141,7 @@ describe('expenses — create', () => {
       amount: 5000,
       currency: 'CLP',
       category: 'food',
+      paymentSource: 'corporate_credit',
       description: 'Lunch',
       receiptStoragePath: 'orgs/org1/receipts/exp-spoof/r.jpg',
       status: 'pending',
@@ -155,12 +158,110 @@ describe('expenses — create', () => {
       amount: 5000,
       currency: 'CLP',
       category: 'food',
+      paymentSource: 'corporate_credit',
       description: 'Lunch',
       receiptStoragePath: 'orgs/org1/receipts/exp-paid/r.jpg',
       status: 'paid',
       date: new Date(),
       createdAt: new Date(),
     }));
+  });
+});
+
+describe('expenses — paymentSource validation', () => {
+  const baseDoc = (overrides: Record<string, unknown> = {}) => ({
+    submittedBy: 'uid-alice',
+    submitterName: 'Alice',
+    amount: 5000,
+    currency: 'CLP',
+    category: 'food',
+    paymentSource: 'corporate_credit',
+    description: 'Lunch',
+    receiptStoragePath: 'orgs/org1/receipts/exp-ps/r.jpg',
+    status: 'pending',
+    date: new Date(),
+    createdAt: new Date(),
+    ...overrides,
+  });
+
+  const validSources = [
+    'corporate_credit',
+    'corporate_debit',
+    'personal_credit',
+    'personal_debit',
+    'cash',
+  ];
+
+  for (const source of validSources) {
+    it(`accepts paymentSource = ${source}`, async () => {
+      const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+      await assertSucceeds(setDoc(doc(alice.firestore(), `orgs/org1/expenses/exp-ps-${source}`), baseDoc({ paymentSource: source })));
+    });
+  }
+
+  it('rejects paymentSource = banana (not in enum)', async () => {
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(setDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-ps-bad'), baseDoc({ paymentSource: 'banana' })));
+  });
+
+  it('rejects missing paymentSource field', async () => {
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    const { paymentSource: _omitted, ...noPaymentSource } = baseDoc();
+    void _omitted;
+    await assertFails(setDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-ps-missing'), noPaymentSource));
+  });
+
+  it('rejects paymentSource = "" (empty string)', async () => {
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(setDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-ps-empty'), baseDoc({ paymentSource: '' })));
+  });
+});
+
+describe('expenses — admin paymentSource on update', () => {
+  it('admin cannot set paymentSource to non-enum value on existing expense', async () => {
+    await seedExpense('org1', 'exp-ps-up', 'uid-alice');
+    const admin = env.authenticatedContext('uid-admin', makeAuth('uid-admin', 'admin@test.com', 'org1', 'admin'));
+    await assertFails(
+      updateDoc(doc(admin.firestore(), 'orgs/org1/expenses/exp-ps-up'), { paymentSource: 'banana' })
+    );
+  });
+});
+
+describe('expenses — employee update of receiptStoragePath', () => {
+  it('employee can set receiptStoragePath on own doc', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-alice');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertSucceeds(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), {
+        receiptStoragePath: 'orgs/org1/receipts/uid-alice/exp-rsp/r.jpg',
+      })
+    );
+  });
+
+  it('employee cannot change status on own doc', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-alice');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), { status: 'paid' })
+    );
+  });
+
+  it('employee cannot change amount on own doc', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-alice');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), { amount: 9999 })
+    );
+  });
+
+  it('employee cannot change receiptStoragePath on doc owned by another user', async () => {
+    await seedExpense('org1', 'exp-rsp', 'uid-bob');
+    const alice = env.authenticatedContext('uid-alice', makeAuth('uid-alice', 'alice@test.com', 'org1', 'employee'));
+    await assertFails(
+      updateDoc(doc(alice.firestore(), 'orgs/org1/expenses/exp-rsp'), {
+        receiptStoragePath: 'orgs/org1/receipts/uid-alice/exp-rsp/r.jpg',
+      })
+    );
   });
 });
 

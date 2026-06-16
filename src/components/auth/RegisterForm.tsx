@@ -1,5 +1,9 @@
 import { useState } from 'preact/hooks';
 import { signUp } from '../../hooks/useAuth';
+import { AuthCard } from '../ui/AuthCard';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
 
 interface FormState {
   companyName: string;
@@ -15,14 +19,25 @@ const INITIAL: FormState = {
   password: '',
 };
 
+const CURRENCY_OPTIONS = [
+  { value: 'CLP', label: 'CLP — Peso chileno' },
+  { value: 'ARS', label: 'ARS — Peso argentino' },
+  { value: 'COP', label: 'COP — Peso colombiano' },
+  { value: 'MXN', label: 'MXN — Peso mexicano' },
+  { value: 'PEN', label: 'PEN — Sol peruano' },
+  { value: 'BRL', label: 'BRL — Real brasileño' },
+  { value: 'USD', label: 'USD — Dólar estadounidense' },
+  { value: 'EUR', label: 'EUR — Euro' },
+];
+
 export default function RegisterForm() {
   const [form, setForm] = useState<FormState>(INITIAL);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  function set(field: keyof FormState) {
+  function set<K extends keyof FormState>(field: K) {
     return (e: Event) => {
-      setForm((f) => ({ ...f, [field]: (e.target as HTMLInputElement).value }));
+      setForm((f) => ({ ...f, [field]: (e.target as HTMLInputElement | HTMLSelectElement).value }));
     };
   }
 
@@ -58,68 +73,64 @@ export default function RegisterForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 400, margin: '0 auto' }}>
-      <h2>Crear empresa</h2>
+    <AuthCard
+      title="Crear empresa"
+      subtitle="Registra tu organización para empezar a gestionar rendiciones de gastos."
+      footer={<>¿Ya tienes cuenta? <a href="/login">Iniciar sesión</a></>}
+    >
+      <form onSubmit={handleSubmit} noValidate>
+        {error && (
+          <div className="alert alert-error" role="alert">
+            {error}
+          </div>
+        )}
 
-      {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-
-      <label>
-        Nombre de empresa
-        <input
+        <Input
+          id="reg-company"
+          label="Nombre de empresa"
           type="text"
           value={form.companyName}
-          onInput={set('companyName')}
           required
           disabled={loading}
+          onInput={set('companyName')}
         />
-      </label>
 
-      <label>
-        Moneda predeterminada
-        <select value={form.defaultCurrency} onChange={set('defaultCurrency')} disabled={loading}>
-          <option value="CLP">CLP — Peso chileno</option>
-          <option value="ARS">ARS — Peso argentino</option>
-          <option value="COP">COP — Peso colombiano</option>
-          <option value="MXN">MXN — Peso mexicano</option>
-          <option value="PEN">PEN — Sol peruano</option>
-          <option value="BRL">BRL — Real brasileño</option>
-          <option value="USD">USD — Dólar estadounidense</option>
-          <option value="EUR">EUR — Euro</option>
-        </select>
-      </label>
+        <Select
+          id="reg-currency"
+          label="Moneda predeterminada"
+          options={CURRENCY_OPTIONS}
+          value={form.defaultCurrency}
+          disabled={loading}
+          onChange={set('defaultCurrency')}
+        />
 
-      <label>
-        Email
-        <input
+        <Input
+          id="reg-email"
+          label="Email"
           type="email"
           value={form.email}
-          onInput={set('email')}
+          autocomplete="email"
           required
           disabled={loading}
-          autocomplete="email"
+          onInput={set('email')}
         />
-      </label>
 
-      <label>
-        Contraseña
-        <input
+        <Input
+          id="reg-password"
+          label="Contraseña"
           type="password"
           value={form.password}
-          onInput={set('password')}
+          autocomplete="new-password"
           required
           minLength={8}
           disabled={loading}
-          autocomplete="new-password"
+          onInput={set('password')}
         />
-      </label>
 
-      <button type="submit" disabled={loading}>
-        {loading ? 'Creando empresa…' : 'Crear empresa'}
-      </button>
-
-      <p>
-        ¿Ya tienes cuenta? <a href="/login">Iniciar sesión</a>
-      </p>
-    </form>
+        <Button type="submit" variant="primary" fullWidth disabled={loading}>
+          {loading ? 'Creando empresa…' : 'Crear empresa'}
+        </Button>
+      </form>
+    </AuthCard>
   );
 }

@@ -13,7 +13,7 @@ export default defineConfig({
         name: 'xpns',
         short_name: 'xpns',
         description: 'Employee expense reporting',
-        theme_color: '#1a1a2e',
+        theme_color: '#F4F1EA',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

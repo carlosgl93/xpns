@@ -1,74 +1,123 @@
-import { useState } from 'preact/hooks';
+// Employee expense entry form. Mobile-first, photo-driven, sticky bottom
+// submit, amount autofocused. Uses the design-system classes from
+// components.css (.expense-form, .photo-input, .amount-input, .submit-bar)
+// and the Input / Select / Button primitives.
+//
+// Auth gating is handled by the form itself (bootstrapAuth + whenAuthReady)
+// — no setInterval in the page wrapper.
+
+import { useState, useEffect, useRef } from 'preact/hooks';
 import { addExpense } from '../../hooks/useExpenses';
-import { ExpenseCategory } from '../../types/models';
+import { ExpenseCategory, PaymentSource } from '../../types/models';
+import { PAYMENT_SOURCE_LABELS } from '../../lib/paymentSources';
+import { bootstrapAuth, whenAuthReady } from '../../hooks/useAuthBootstrap';
+import { authUser, authClaims } from '../../hooks/useAuth';
+import { Input } from '../ui/Input';
+import { Select } from '../ui/Select';
+import { Button } from '../ui/Button';
+import { validateExpenseForm, localTodayString, parseLocalDate } from '../../lib/expenseForm';
 import type { Timestamp } from 'firebase/firestore';
 
-export interface ExpenseFormFields {
-  date: string;
-  amount: number;
-  currency: string;
-  category: string;
-  description: string;
-  photo: File | null;
+// Re-export the validator + helpers so existing test imports keep working.
+export { validateExpenseForm, localTodayString, parseLocalDate };
+export type { ExpenseFormFields, FormErrors } from '../../lib/expenseForm';
+
+const CATEGORY_OPTIONS = Object.values(ExpenseCategory).map((value) => ({
+  value,
+  label: ({
+    food: 'Comida',
+    lodging: 'Alojamiento',
+    transport: 'Transporte',
+    entertainment: 'Entretenimiento',
+    other: 'Otro',
+  } as Record<string, string>)[value] ?? value,
+}));
+
+const PAYMENT_SOURCE_OPTIONS = Object.values(PaymentSource).map((value) => ({
+  value,
+  label: PAYMENT_SOURCE_LABELS[value],
+}));
+
+function makeInitial(defaultCurrency: string) {
+  return {
+    date: localTodayString(),
+    amount: 0,
+    currency: defaultCurrency,
+    category: '',
+    paymentSource: '',
+    description: '',
+    photo: null as File | null,
+  };
 }
-
-export type FormErrors = Partial<Record<keyof ExpenseFormFields, string>>;
-
-export function validateExpenseForm(fields: ExpenseFormFields): FormErrors {
-  const errors: FormErrors = {};
-
-  if (!fields.amount || fields.amount <= 0) {
-    errors.amount = 'El monto debe ser mayor a 0';
-  }
-  if (!fields.currency) {
-    errors.currency = 'Selecciona una moneda';
-  }
-  if (!fields.category) {
-    errors.category = 'Selecciona una categoría';
-  }
-  if (!fields.date) {
-    errors.date = 'La fecha es requerida';
-  } else {
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    if (fields.date > todayStr) {
-      errors.date = 'La fecha no puede ser futura';
-    }
-  }
-  if (!fields.photo) {
-    errors.photo = 'El comprobante es requerido';
-  }
-
-  return errors;
-}
-
-const CURRENCIES = ['CLP', 'ARS', 'COP', 'MXN', 'PEN', 'BRL', 'USD', 'EUR'];
-
-const INITIAL: ExpenseFormFields = {
-  date: '',
-  amount: 0,
-  currency: '',
-  category: '',
-  description: '',
-  photo: null,
-};
 
 export default function ExpenseForm() {
-  const [form, setForm] = useState<ExpenseFormFields>(INITIAL);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [form, setForm] = useState(() => makeInitial(''));
+  const [defaultCurrency, setDefaultCurrency] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const cancelledRef = useRef(false);
 
-  function setField<K extends keyof ExpenseFormFields>(field: K, value: ExpenseFormFields[K]) {
+  // Auth bootstrap: wait for the first emission, then snapshot.
+  // If unauthenticated (or no orgId), redirect to login.
+  useEffect(() => {
+    cancelledRef.current = false;
+    let unsubscribe: (() => void) | null = null;
+
+    (async () => {
+      unsubscribe = await bootstrapAuth();
+      await whenAuthReady();
+      if (cancelledRef.current) return;
+
+      const u = authUser.value;
+      const c = authClaims.value;
+      if (!u || !c?.orgId) {
+        window.location.href = '/login';
+        return;
+      }
+      const cur = c.defaultCurrency ?? 'CLP';
+      setDefaultCurrency(cur);
+      setForm((f) => ({ ...f, currency: f.currency || cur }));
+      setAuthReady(true);
+    })();
+
+    return () => {
+      cancelledRef.current = true;
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  function setField<K extends keyof ReturnType<typeof makeInitial>>(
+    field: K,
+    value: ReturnType<typeof makeInitial>[K]
+  ) {
     setForm((f) => ({ ...f, [field]: value }));
+    if (errors[field]) {
+      setErrors((e) => {
+        const next = { ...e };
+        delete next[field];
+        return next;
+      });
+    }
+  }
+
+  function handlePhotoChange(e: Event) {
+    const file = (e.target as HTMLInputElement).files?.[0] ?? null;
+    setField('photo', file);
   }
 
   async function handleSubmit(e: Event) {
     e.preventDefault();
-    const fieldErrors = validateExpenseForm(form);
+    const fieldErrors = validateExpenseForm(form, defaultCurrency);
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
+      // Bring the first invalid field into view (mobile keyboards hide the
+      // submit bar, so the user needs to see the error).
+      const firstInvalid = Object.keys(fieldErrors)[0];
+      const el = document.getElementById(firstInvalid);
+      el?.focus();
       return;
     }
     setErrors({});
@@ -76,133 +125,173 @@ export default function ExpenseForm() {
     setSubmitError(null);
     try {
       const { Timestamp } = await import('firebase/firestore');
-      const dateTs = Timestamp.fromDate(new Date(form.date + 'T00:00:00')) as Timestamp;
+      const dateTs = Timestamp.fromDate(parseLocalDate(form.date));
       await addExpense(
         {
           submittedBy: '',
           submitterName: '',
           amount: form.amount,
-          currency: form.currency,
+          currency: defaultCurrency,
           category: form.category as ExpenseCategory,
+          paymentSource: form.paymentSource as PaymentSource,
           description: form.description,
           receiptStoragePath: '',
           status: 'pending',
-          date: dateTs,
+          date: dateTs as Timestamp,
         },
         form.photo!
       );
-      // Clear only after Firestore ack
-      setForm(INITIAL);
+      if (cancelledRef.current) return;
+      setForm(makeInitial(defaultCurrency));
       setSuccess(true);
-    } catch {
+    } catch (err) {
+      console.error('[ExpenseForm] submit failed', err);
+      if (cancelledRef.current) return;
       setSubmitError('Error al guardar el gasto. Intenta de nuevo.');
     } finally {
-      setSubmitting(false);
+      if (!cancelledRef.current) setSubmitting(false);
     }
+  }
+
+  if (!authReady) {
+    return <p className="status-loading">Cargando…</p>;
   }
 
   if (success) {
     return (
-      <div>
-        <p>Gasto registrado correctamente.</p>
-        <button type="button" onClick={() => setSuccess(false)}>
-          Agregar otro
-        </button>
+      <div className="expense-form form-success">
+        <div className="alert alert-success" role="status">
+          Gasto registrado correctamente.
+        </div>
+        <div className="form-success-actions">
+          <Button variant="primary" onClick={() => setSuccess(false)}>
+            Agregar otro
+          </Button>
+          <Button variant="ghost" href="/dashboard">
+            Volver al dashboard
+          </Button>
+        </div>
       </div>
     );
   }
 
+  const todayMax = localTodayString();
+
   return (
-    <form onSubmit={handleSubmit} noValidate>
-      <div>
-        <label htmlFor="date">Fecha</label>
-        <input
+    <>
+      <header className="mobile-form-header" aria-label="Nuevo gasto">
+        <a href="/dashboard" className="btn btn-ghost mobile-only">
+          Cancelar
+        </a>
+        <span className="form-header-title">Nuevo gasto</span>
+        <span className="logo">xpns</span>
+      </header>
+
+      <form className="expense-form" onSubmit={handleSubmit} noValidate>
+        <label
+          htmlFor="photo"
+          className={`photo-input ${form.photo ? 'has-image' : ''}`}
+          aria-invalid={errors.photo ? 'true' : undefined}
+        >
+          {form.photo ? (
+            <>
+              <div>Recibo capturado</div>
+              <div className="meta">{form.photo.name}</div>
+            </>
+          ) : (
+            <>
+              <div>Capturar comprobante</div>
+              <div className="meta">Toca para abrir la cámara</div>
+            </>
+          )}
+          <input
+            id="photo"
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoChange}
+            disabled={submitting}
+            required
+            className="visually-hidden"
+          />
+        </label>
+        {errors.photo && <span className="error" role="alert">{errors.photo}</span>}
+
+        <div className="amount-row">
+          <Input
+            id="amount"
+            label={`Monto${defaultCurrency ? ` · ${defaultCurrency}` : ''}`}
+            type="number"
+            min={0.01}
+            step="any"
+            value={form.amount || ''}
+            onInput={(e) => setField('amount', parseFloat((e.target as HTMLInputElement).value) || 0)}
+            required
+            disabled={submitting}
+            error={errors.amount}
+            autofocus
+            className="amount-input"
+          />
+        </div>
+
+        <Input
           id="date"
+          label="Fecha"
           type="date"
           value={form.date}
-          max={new Date().toISOString().split('T')[0]}
+          max={todayMax}
           onInput={(e) => setField('date', (e.target as HTMLInputElement).value)}
           required
+          disabled={submitting}
+          error={errors.date}
         />
-        {errors.date && <span>{errors.date}</span>}
-      </div>
 
-      <div>
-        <label htmlFor="amount">Monto</label>
-        <input
-          id="amount"
-          type="number"
-          min="0.01"
-          step="any"
-          value={form.amount || ''}
-          onInput={(e) => setField('amount', parseFloat((e.target as HTMLInputElement).value) || 0)}
-          required
+        <Input
+          id="description"
+          label="Comercio"
+          type="text"
+          value={form.description}
+          placeholder="Ej: Copec"
+          onInput={(e) => setField('description', (e.target as HTMLInputElement).value)}
+          disabled={submitting}
         />
-        {errors.amount && <span>{errors.amount}</span>}
-      </div>
 
-      <div>
-        <label htmlFor="currency">Moneda</label>
-        <select
-          id="currency"
-          value={form.currency}
-          onChange={(e) => setField('currency', (e.target as HTMLSelectElement).value)}
-          required
-        >
-          <option value="">Seleccionar...</option>
-          {CURRENCIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        {errors.currency && <span>{errors.currency}</span>}
-      </div>
-
-      <div>
-        <label htmlFor="category">Categoría</label>
-        <select
+        <Select
           id="category"
+          label="Categoría"
+          options={CATEGORY_OPTIONS}
+          placeholder="Seleccionar…"
           value={form.category}
           onChange={(e) => setField('category', (e.target as HTMLSelectElement).value)}
           required
-        >
-          <option value="">Seleccionar...</option>
-          {Object.entries(ExpenseCategory).map(([label, value]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-        {errors.category && <span>{errors.category}</span>}
-      </div>
-
-      <div>
-        <label htmlFor="description">Descripción</label>
-        <textarea
-          id="description"
-          value={form.description}
-          onInput={(e) => setField('description', (e.target as HTMLTextAreaElement).value)}
+          disabled={submitting}
+          error={errors.category}
         />
-      </div>
 
-      <div>
-        <label htmlFor="photo">Comprobante</label>
-        <input
-          id="photo"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => {
-            const file = (e.target as HTMLInputElement).files?.[0] ?? null;
-            setField('photo', file);
-          }}
+        <Select
+          id="paymentSource"
+          label="Origen de pago"
+          options={PAYMENT_SOURCE_OPTIONS}
+          placeholder="Seleccionar…"
+          value={form.paymentSource}
+          onChange={(e) => setField('paymentSource', (e.target as HTMLSelectElement).value)}
           required
+          disabled={submitting}
+          error={errors.paymentSource}
         />
-        {errors.photo && <span>{errors.photo}</span>}
-      </div>
 
-      {submitError && <p>{submitError}</p>}
+        {submitError && (
+          <div className="alert alert-error" role="alert">
+            {submitError}
+          </div>
+        )}
 
-      <button type="submit" disabled={submitting}>
-        {submitting ? 'Guardando...' : 'Guardar gasto'}
-      </button>
-    </form>
+        <div className="submit-bar">
+          <Button type="submit" variant="primary" fullWidth disabled={submitting}>
+            {submitting ? 'Guardando…' : 'Guardar gasto'}
+          </Button>
+        </div>
+      </form>
+    </>
   );
 }

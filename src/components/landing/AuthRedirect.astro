@@ -1,0 +1,31 @@
+---
+// Client-side auth check for the landing page.
+// If the user is already signed in, redirect to /dashboard. The static page
+// is rendered for everyone; this script fires once Firebase Auth hydrates
+// the cached user and only takes action when present.
+
+const path = Astro.url.pathname;
+---
+{path === '/' && (
+  <script>
+    (async () => {
+      try {
+        const [{ onAuthStateChanged }, { getAuth }] = await Promise.all([
+          import('firebase/auth'),
+          import('../../lib/firebase'),
+        ]);
+        const auth = await getAuth();
+        // Firebase fires the callback immediately with the cached user if
+        // there's a persisted session. We only redirect when a user exists.
+        onAuthStateChanged(auth, (user) => {
+          if (user) {
+            window.location.replace('/dashboard');
+          }
+        });
+      } catch {
+        // Firebase failed to initialise (e.g. private mode, blocked CDN).
+        // Stay on the landing page — better than breaking the visit.
+      }
+    })();
+  </script>
+)}

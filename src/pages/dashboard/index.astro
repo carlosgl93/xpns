@@ -1,17 +1,7 @@
 ---
+import AppLayout from '../../layouts/AppLayout.astro';
 import AdminDashboard from '../../components/dashboard/AdminDashboard';
 ---
-<html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dashboard — xpns</title>
-    <link rel="manifest" href="/manifest.webmanifest" />
-  </head>
-  <body>
-    <main>
-      <h1>Dashboard</h1>
-      <AdminDashboard client:load />
-    </main>
-  </body>
-</html>
+<AppLayout title="Dashboard">
+  <AdminDashboard client:load />
+</AppLayout>

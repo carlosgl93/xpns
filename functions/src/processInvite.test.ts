@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { HttpsError } from 'firebase-functions/v2/https';
 
 const mockGetUser = vi.fn().mockResolvedValue({ customClaims: null });
 const mockSetCustomUserClaims = vi.fn().mockResolvedValue(undefined);
@@ -10,7 +11,18 @@ const mockRunTransaction = vi.fn().mockImplementation(
   }
 );
 const mockDocSet = vi.fn().mockResolvedValue(undefined);
-const mockDocFn = vi.fn().mockReturnValue({ id: 'mock-invite-ref', set: mockDocSet });
+const mockOrgGet = vi.fn().mockResolvedValue({
+  exists: true,
+  data: () => ({ defaultCurrency: 'CLP' }),
+});
+const mockDocFn = vi.fn().mockImplementation((path?: string) => {
+  // The org doc read (processInvite reads defaultCurrency) is the only call
+  // path that uses .get(); invite/member refs use .set() or no method.
+  if (typeof path === 'string' && path.startsWith('orgs/') && !path.includes('/invites/') && !path.includes('/members/')) {
+    return { id: 'mock-org-ref', get: mockOrgGet };
+  }
+  return { id: 'mock-invite-ref', set: mockDocSet };
+});
 
 vi.mock('firebase-admin/app', () => ({
   initializeApp: vi.fn(),
@@ -52,7 +64,12 @@ describe('processInviteLogic', () => {
     mockTxnUpdate.mockResolvedValue(undefined);
     mockSetCustomUserClaims.mockResolvedValue(undefined);
     mockDocSet.mockResolvedValue(undefined);
-    mockDocFn.mockReturnValue({ id: 'mock-invite-ref', set: mockDocSet });
+    mockDocFn.mockImplementation((path?: string) => {
+      if (typeof path === 'string' && path.startsWith('orgs/') && !path.includes('/invites/') && !path.includes('/members/')) {
+        return { id: 'mock-org-ref', get: mockOrgGet };
+      }
+      return { id: 'mock-invite-ref', set: mockDocSet };
+    });
     mockRunTransaction.mockImplementation(
       async (fn: (txn: { get: typeof mockTxnGet; update: typeof mockTxnUpdate }) => Promise<void>) => {
         await fn({ get: mockTxnGet, update: mockTxnUpdate });
@@ -68,6 +85,7 @@ describe('processInviteLogic', () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith('uid-alice', {
       orgId: 'org1',
       role: 'employee',
+      defaultCurrency: 'CLP',
     });
   });
 
@@ -111,17 +129,19 @@ describe('processInviteLogic', () => {
   it('throws not-found when invite does not exist', async () => {
     mockTxnGet.mockResolvedValue({ exists: false, data: () => null });
     const { processInviteLogic } = await import('./processInvite');
-    await expect(
-      processInviteLogic('uid-alice', 'alice@test.com', { token: 'bad', orgId: 'org1' })
-    ).rejects.toThrow();
+    const err = await processInviteLogic('uid-alice', 'alice@test.com', { token: 'bad', orgId: 'org1' })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(HttpsError);
+    expect((err as HttpsError).code).toBe('not-found');
   });
 
   it('throws when invite email does not match user email', async () => {
     mockTxnGet.mockResolvedValue(makeInviteSnap({ email: 'other@test.com' }));
     const { processInviteLogic } = await import('./processInvite');
-    await expect(
-      processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
-    ).rejects.toThrow();
+    const err = await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(HttpsError);
+    expect((err as HttpsError).code).toBe('permission-denied');
   });
 
   it('throws when invite is expired', async () => {
@@ -129,9 +149,10 @@ describe('processInviteLogic', () => {
       makeInviteSnap({ expiresAt: { toMillis: () => Date.now() - 1000 } })
     );
     const { processInviteLogic } = await import('./processInvite');
-    await expect(
-      processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
-    ).rejects.toThrow();
+    const err = await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(HttpsError);
+    expect((err as HttpsError).code).toBe('deadline-exceeded');
   });
 
   it('throws when invite has already been used', async () => {
@@ -139,9 +160,10 @@ describe('processInviteLogic', () => {
       makeInviteSnap({ usedAt: { toMillis: () => Date.now() - 3600000 } })
     );
     const { processInviteLogic } = await import('./processInvite');
-    await expect(
-      processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
-    ).rejects.toThrow();
+    const err = await processInviteLogic('uid-alice', 'alice@test.com', { token: 'tok1', orgId: 'org1' })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(HttpsError);
+    expect((err as HttpsError).code).toBe('already-exists');
   });
 
   it('allows join if invite has no email restriction', async () => {
@@ -162,6 +184,7 @@ describe('processInviteLogic', () => {
     expect(mockSetCustomUserClaims).toHaveBeenCalledWith('uid-alice', {
       orgId: 'org-from-doc',
       role: 'employee',
+      defaultCurrency: 'CLP',
     });
   });
 
